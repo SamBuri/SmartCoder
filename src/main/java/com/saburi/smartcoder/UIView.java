@@ -5,8 +5,9 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
-import helpers.Utilities;
+import com.saburi.utils.Utilities;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -18,16 +19,16 @@ public class UIView extends CodeGenerator {
 
     private final String objectName;
     private final String objectNameController;
-    private final List<Field> fields;
+    private final List<FieldDAO> fields;
 
-    public UIView(String objectName, List<Field> fields) {
+    public UIView(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
         this.fields = fields;
         this.objectNameController = objectName.concat("ViewController");
     }
 
-    private List<Field> getAllField() {
-        List<Field> list = new ArrayList<>();
+    private List<FieldDAO> getAllField() {
+        List<FieldDAO> list = new ArrayList<>();
         list.addAll(fields);
         list.addAll(defaulFields);
         return list;

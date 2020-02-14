@@ -3,24 +3,38 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.saburi.smartcoder;
+package com.saburi.controller;
 
-import helpers.FXUIUtils;
-import static helpers.FXUIUtils.browse;
-import static helpers.FXUIUtils.errorMessage;
-import static helpers.FXUIUtils.message;
-import static helpers.FXUIUtils.setTableEditable;
-import static helpers.Utilities.isNullOrEmpty;
-import static helpers.Utilities.makeDirectory;
-import static helpers.Utilities.openFile;
-import static helpers.Utilities.writeFile;
+import com.saburi.dataacess.FieldDAO;
+import com.saburi.dataacess.ProjectDAO;
+import com.saburi.utils.FXUIUtils;
+import static com.saburi.utils.FXUIUtils.browse;
+import static com.saburi.utils.FXUIUtils.errorMessage;
+import static com.saburi.utils.FXUIUtils.message;
+import static com.saburi.utils.FXUIUtils.setTableEditable;
+import static com.saburi.utils.Utilities.makeDirectory;
+import static com.saburi.utils.Utilities.openFile;
+import static com.saburi.utils.Utilities.writeFile;
 import com.saburi.model.Field;
-import helpers.Enums;
-import helpers.Enums.MenuTypes;
-import helpers.Enums.RelationMappping;
-import helpers.Enums.Saburikeys;
-import helpers.Enums.keys;
-import helpers.Utilities;
+import com.saburi.model.Project;
+import com.saburi.smartcoder.CodeGenerator;
+import com.saburi.smartcoder.Controller;
+import com.saburi.smartcoder.DBAcess;
+import com.saburi.smartcoder.Entity;
+import com.saburi.smartcoder.GenMenu;
+import com.saburi.smartcoder.GenViewController;
+import com.saburi.smartcoder.SQLFile;
+import com.saburi.smartcoder.UIEdit;
+import com.saburi.smartcoder.UIView;
+import com.saburi.utils.EditCell;
+import com.saburi.utils.Enums;
+import com.saburi.utils.Enums.MenuTypes;
+import static com.saburi.utils.Enums.MenuTypes.Menu;
+import com.saburi.utils.Enums.RelationMappping;
+import com.saburi.utils.Enums.Saburikeys;
+import com.saburi.utils.Enums.keys;
+import static com.saburi.utils.FXUIUtils.loadModels;
+import com.saburi.utils.Utilities;
 import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
@@ -30,6 +44,7 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
 import javafx.beans.value.ObservableValue;
@@ -43,6 +58,7 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
+import javafx.scene.control.TablePosition;
 
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -56,7 +72,7 @@ import javafx.util.Pair;
  *
  * @author ClinicMaster13
  */
-public class SaburiJavaFXToolsController implements Initializable {
+public class SmartCoderController implements Initializable {
 
     private enum FXControls {
         Label, TextField, ComboBox, DatePicker, CheckBox
@@ -66,8 +82,7 @@ public class SaburiJavaFXToolsController implements Initializable {
             "String", "List", "Set", "Image", "LocalDate", "LocalDateTime", "LocalTime", "boolean", "int", "float", "double"
     );
 
-    private final ObservableList enumClasses = FXCollections.observableArrayList("CommonEnums", "Enums");
-
+//    private final ObservableList enumClasses = FXCollections.observableArrayList("CommonEnums", "Enums");
     private final ObservableList mapppings = FXCollections.observableArrayList(RelationMappping.OneToOne.name(),
             RelationMappping.OneToMany.name(), RelationMappping.ManyToOne.name(), RelationMappping.ManyToMany.name());
 
@@ -83,18 +98,18 @@ public class SaburiJavaFXToolsController implements Initializable {
     private final ObservableList menuTypes = FXCollections.observableArrayList(Enums.MenuTypes.values());
 
     @FXML
-    TableView<Field> tblSaburiTools;
+    TableView<FieldDAO> tblSaburiTools;
     @FXML
-    private TableColumn<Field, String> tbcFieldName, tbcCaption, tbcDataType, tbcReferences, tbcKey,
-            tbcSaburiKey, tbcMapping, tbcSubFields, tbcEnumClass;
+    private TableColumn<FieldDAO, String> tbcFieldName, tbcCaption, tbcDataType, tbcReferences, tbcKey,
+            tbcSaburiKey, tbcMapping, tbcSubFields, tbcProjectID;
     @FXML
-    private TableColumn<Field, Integer> tbcSize;
+    private TableColumn<FieldDAO, Integer> tbcSize;
 
     @FXML
-    private TableColumn<Field, Boolean> tbcNullable;
+    private TableColumn<FieldDAO, Boolean> tbcNullable;
 
     @FXML
-    private TableColumn<Field, Boolean> tbcEnumerated;
+    private TableColumn<FieldDAO, Boolean> tbcEnumerated;
 
     @FXML
     private TextField txtFileName, txtObjectName, txtObjectCaption, txtOutputDirectory, txtParentMenuID;
@@ -108,12 +123,14 @@ public class SaburiJavaFXToolsController implements Initializable {
     @FXML
     private Button btnImport, btnSave;
     @FXML
-    private ComboBox cboFiles;
+    private ComboBox cboFiles, cboProject;
     @FXML
     private ComboBox<MenuTypes> cboMenuType;
 
     @FXML
     private CheckBox chkOpenFile, chkGenerateMenus, chkGenerateViewUI;
+    private final ProjectDAO oProjectDAO = new ProjectDAO();
+    private final FieldDAO oFieldDAO = new FieldDAO();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -147,7 +164,9 @@ public class SaburiJavaFXToolsController implements Initializable {
                     String contents = "";
                     int index = 0;
                     int size = tblSaburiTools.getItems().size();
-                    for (Field field : tblSaburiTools.getItems()) {
+                    List<FieldDAO> fieldDAOs = tblSaburiTools.getItems();
+                    fieldDAOs.removeIf(p -> p.getFieldName().isBlank());
+                    for (FieldDAO field : fieldDAOs) {
                         index++;
                         contents += field.toString();
                         if (index < size) {
@@ -165,43 +184,14 @@ public class SaburiJavaFXToolsController implements Initializable {
             btnOutputDirectory.setOnAction(e -> FXUIUtils.browseDirectory(txtOutputDirectory));
             btnGenerate.setOnAction(e -> this.generateCode());
             btnClose.setOnAction(e -> this.close());
-            setTableEditable(tblSaburiTools);
-            editFieldName();
-            editCaption();
-            editReferences();
-            editSubFields();
-            editDataType();
-            editMapping();
-            editKey();
-            editSaburiKey();
-            editEnumClass();
-            editSize();
-
-            tbcNullable.setCellValueFactory((TableColumn.CellDataFeatures<Field, Boolean> param) -> {
-                Field field = param.getValue();
-                SimpleBooleanProperty p = field.getNullableProperty();
-                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
-                    field.setNullable(newValue);
-                });
-                return p;
-            });
-
-            tbcEnumerated.setCellValueFactory((TableColumn.CellDataFeatures<Field, Boolean> param) -> {
-                Field field = param.getValue();
-
-                SimpleBooleanProperty p = field.getEnumeratedProperty();
-                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
-                    field.setEnumerated(newValue);
-                });
-                return p;
-            });
 
             this.tblSaburiTools.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
             cboFiles.setItems(togenerateFiles);
             cboMenuType.setItems(menuTypes);
             cboMenuType.setValue(MenuTypes.SplitButton);
             txtParentMenuID.editableProperty().bindBidirectional(chkGenerateMenus.selectedProperty());
-
+            loadModels(oProjectDAO.read(), cboProject);
+            initTable();
         } catch (Exception e) {
             errorMessage(e);
         }
@@ -213,37 +203,76 @@ public class SaburiJavaFXToolsController implements Initializable {
         stage.close();
     }
 
-    private void loadTable() {
+    private void initTable() {
         try {
-            tblSaburiTools.setItems(FXCollections.observableArrayList());
-            tblSaburiTools.getItems().addAll(this.readFile(txtFileName.getText(), ","));
+            setTableEditable(tblSaburiTools);
 
-            tbcDataType.setCellFactory(ComboBoxTableCell.forTableColumn(dataTypes));
-            tbcKey.setCellFactory(ComboBoxTableCell.forTableColumn(keyses));
-            tbcSaburiKey.setCellFactory(ComboBoxTableCell.forTableColumn(saburiKeys));
-            tbcMapping.setCellFactory(ComboBoxTableCell.forTableColumn(mapppings));
-            tbcEnumClass.setCellFactory(ComboBoxTableCell.forTableColumn(enumClasses));
-
-            final Callback<TableColumn<Field, Boolean>, TableCell<Field, Boolean>> cellFactory = CheckBoxTableCell.forTableColumn(tbcNullable);
-            tbcNullable.setCellFactory((TableColumn<Field, Boolean> param) -> {
-                TableCell<Field, Boolean> cell = cellFactory.call(param);
+            final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> cellFactory = CheckBoxTableCell.forTableColumn(tbcNullable);
+            tbcNullable.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
+                TableCell<FieldDAO, Boolean> cell = cellFactory.call(param);
                 cell.setAlignment(Pos.CENTER);
                 return cell;
             });
             tbcNullable.setCellFactory(cellFactory);
 
-            final Callback<TableColumn<Field, Boolean>, TableCell<Field, Boolean>> enumeratedCellFactory = CheckBoxTableCell.forTableColumn(tbcEnumerated);
-            tbcEnumerated.setCellFactory((TableColumn<Field, Boolean> param) -> {
-                TableCell<Field, Boolean> cell = enumeratedCellFactory.call(param);
+            final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> enumeratedCellFactory = CheckBoxTableCell.forTableColumn(tbcEnumerated);
+            tbcEnumerated.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
+                TableCell<FieldDAO, Boolean> cell = enumeratedCellFactory.call(param);
                 cell.setAlignment(Pos.CENTER);
                 return cell;
             });
             tbcEnumerated.setCellFactory(enumeratedCellFactory);
 
+            tbcNullable.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
+                FieldDAO field = param.getValue();
+                SimpleBooleanProperty p = field.getNullableProperty();
+                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    field.setNullable(newValue);
+                });
+                return p;
+            });
+
+            tbcEnumerated.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
+                FieldDAO field = param.getValue();
+
+                SimpleBooleanProperty p = field.getEnumeratedProperty();
+                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    field.setEnumerated(newValue);
+                });
+                return p;
+            });
+            editFieldName();
+            editCaption();
+            editReferences();
+            editSubFields();
+            editDataType();
+            editMapping();
+            editKey();
+            editSaburiKey();
+            editProjectID();
+            editSize();
+            tbcDataType.setCellFactory(ComboBoxTableCell.forTableColumn(dataTypes));
+            tbcKey.setCellFactory(ComboBoxTableCell.forTableColumn(keyses));
+            tbcSaburiKey.setCellFactory(ComboBoxTableCell.forTableColumn(saburiKeys));
+            tbcMapping.setCellFactory(ComboBoxTableCell.forTableColumn(mapppings));
+
+            ObservableList projectIds = FXCollections.observableList(oProjectDAO.read()
+                    .stream().map(Project::getProjectID).collect(Collectors.toList()));
+            tbcProjectID.setCellFactory(ComboBoxTableCell.forTableColumn(projectIds));
+            addRow(tblSaburiTools, 0);
+
         } catch (Exception e) {
             errorMessage(e);
         }
 
+    }
+
+    private void loadTable() {
+        try {
+            tblSaburiTools.setItems(FXCollections.observableList(FieldDAO.getFieldDAOs(this.readFile(txtFileName.getText(), ","))));
+            addRow(tblSaburiTools, tblSaburiTools.getItems().size() - 1);
+        } catch (Exception e) {
+        }
     }
 
     private ObservableList<Field> readFile(String fileName, String seperator) {
@@ -278,10 +307,12 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcFieldName.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setFieldName(value);
             tblSaburiTools.refresh();
+            addRow(tblSaburiTools, event.getTablePosition().getRow());
+
         });
     }
 
@@ -292,7 +323,7 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcCaption.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setCaption(value);
             tblSaburiTools.refresh();
@@ -306,7 +337,7 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcReferences.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setReferences(value);
             tblSaburiTools.refresh();
@@ -318,7 +349,7 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcSubFields.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setSubFields(value);
             tblSaburiTools.refresh();
@@ -330,7 +361,7 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcDataType.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setDataType(value);
             tblSaburiTools.refresh();
@@ -342,7 +373,7 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcMapping.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setMapping(value);
             tblSaburiTools.refresh();
@@ -354,7 +385,7 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcKey.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setKey(value);
             tblSaburiTools.refresh();
@@ -366,21 +397,21 @@ public class SaburiJavaFXToolsController implements Initializable {
         tbcSaburiKey.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
                     .setSaburiKey(value);
             tblSaburiTools.refresh();
         });
     }
 
-    private void editEnumClass() {
+    private void editProjectID() {
 
-        tbcEnumClass.setOnEditCommit(event -> {
+        tbcProjectID.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
-            ((Field) event.getTableView().getItems()
+            ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setEnumClass(value);
+                    .setProjectID(value);
             tblSaburiTools.refresh();
         });
     }
@@ -391,7 +422,7 @@ public class SaburiJavaFXToolsController implements Initializable {
             tbcSize.setOnEditCommit(event -> {
                 final int value = event.getNewValue() != null ? event.getNewValue()
                         : event.getOldValue();
-                ((Field) event.getTableView().getItems()
+                ((FieldDAO) event.getTableView().getItems()
                         .get(event.getTablePosition().getRow()))
                         .setSize(value);
                 tblSaburiTools.refresh();
@@ -410,20 +441,21 @@ public class SaburiJavaFXToolsController implements Initializable {
             String objectCaption = txtObjectCaption.getText();
             String outPutDirecory = txtOutputDirectory.getText();
 
-            if (isNullOrEmpty(objectName)) {
+            if (objectName.isBlank()) {
                 message("Must enter Object Name!");
                 return;
             }
 
-            if (isNullOrEmpty(outPutDirecory)) {
+            if (outPutDirecory.isBlank()) {
                 message("Must enter Out Put Direcory!");
                 return;
             }
 
-            List<Field> fields = tblSaburiTools.getItems();
+            List<FieldDAO> fieldDAOs = tblSaburiTools.getItems();
+            fieldDAOs.removeIf(p -> p.getFieldName().isBlank());
 
             CodeGenerator codeGenerator = new CodeGenerator();
-            codeGenerator.validate(fields);
+            codeGenerator.validate(fieldDAOs);
 
             String entityFolder = outPutDirecory + "\\Entities";
             String controllerFolder = outPutDirecory + "\\Controllers";
@@ -451,16 +483,16 @@ public class SaburiJavaFXToolsController implements Initializable {
             String menuFileName = menusFolder + "\\" + objectName + "Menu.txt";
             String sqlFileName = sqlFolder + "\\" + objectName + "SQLFile.txt";
 
-            String entityFileContents = new Entity(objectName, fields).makeClass();
-            String daFileContents = new DBAcess(objectName, fields).makeClass();
-            String controllerFileContent = new Controller(objectName, fields).makeClass();
-            String vwcontrollerFileContent = new ViewController(objectName).makeClass();
-            String fxmlFileContent = new UIEdit(objectName, fields).create();
-            String fxmlTBFileContent = new UIView(objectName, fields).create();
-            String menuFIleContents = Menu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
+            String entityFileContents = new Entity(objectName, fieldDAOs).makeClass();
+            String daFileContents = new DBAcess(objectName, fieldDAOs).makeClass();
+            String controllerFileContent = new Controller(objectName, fieldDAOs).makeClass();
+            String vwcontrollerFileContent = new GenViewController(objectName).makeClass();
+            String fxmlFileContent = new UIEdit(objectName, fieldDAOs).create();
+            String fxmlTBFileContent = new UIView(objectName, fieldDAOs).create();
+            String menuFIleContents = GenMenu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
             String sqlFileContents = SQLFile.callEditAccessObject(objectName, objectCaption);
 
-            if (Utilities.hasHelper(fields)) {
+            if (Utilities.hasHelper(fieldDAOs)) {
                 sqlFileContents += SQLFile.callEditIDGenerator(objectName);
             }
 
@@ -545,5 +577,21 @@ public class SaburiJavaFXToolsController implements Initializable {
 
     }
 
-//    
+    private void addRow(TableView tableView, int rowIndex) {
+
+        List<FieldDAO> fieldDAOs = tableView.getItems();
+        int size = fieldDAOs.size();
+        
+        if (size == 0) {
+            tableView.getItems().add(new FieldDAO());
+        } else {
+            int lastIndex = size - 1;
+            if (rowIndex == lastIndex) {
+                FieldDAO lastFieldDAO = fieldDAOs.get(lastIndex);
+                if (!lastFieldDAO.getFieldName().isBlank()) {
+                    tableView.getItems().add(new FieldDAO());
+                }
+            }
+        }
+    }
 }

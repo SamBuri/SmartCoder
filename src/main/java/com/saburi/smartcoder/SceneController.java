@@ -5,20 +5,21 @@
  */
 package com.saburi.smartcoder;
 
-import com.saburi.model.Settings;
-import static helpers.FXUIUtils.errorMessage;
+import static com.saburi.utils.FXUIUtils.errorMessage;
+import static com.saburi.utils.Navigation.loadEditUi;
+import static com.saburi.utils.Navigation.loadFXML;
+import static com.saburi.utils.Navigation.loadSearchEngine;
+import static com.saburi.utils.Navigation.loadUI;
+import com.saburi.utils.SearchTree;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
 import javafx.fxml.FXML;
-import javafx.fxml.FXMLLoader;
 import javafx.fxml.Initializable;
 import javafx.scene.Parent;
-import javafx.scene.Scene;
 import javafx.scene.control.Button;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.StackPane;
-import javafx.stage.Stage;
 
 /**
  * FXML Controller class
@@ -26,42 +27,35 @@ import javafx.stage.Stage;
  * @author ClinicMaster13
  */
 public class SceneController implements Initializable {
-    
+
     @FXML
     private StackPane stpMain;
     @FXML
     Button btnGenerate;
     @FXML
-    private MenuItem mniSetting;
+    private MenuItem mniSetting, mniProject, mniView;
+
     /**
      * Initializes the controller class.
+     *
+     * @param location
+     * @param resources
      */
     @Override
     public void initialize(URL location, ResourceBundle resources) {
         try {
-            Parent root = FXMLLoader.load(getClass().getResource("SaburiJavaFXTools.fxml"));
-                    stpMain.getChildren().add(root);
+            Parent root = loadFXML("SmartCoder");
+            stpMain.getChildren().add(root);
 
-            
-            mniSetting.setOnAction(e->{
-             
-                try {
-                    Parent settingsRoot = FXMLLoader.load(getClass().getResource("Settings.fxml"));
-                    Scene scene = new Scene(settingsRoot);
-                    Stage stage = new Stage();
-                    stage.setScene(scene);
-                    stage.show();
-                  
-                } catch (IOException ex) {
-                    errorMessage(ex);
-                }
-            });
+            loadUI(mniSetting, "Settings", false);
+            loadEditUi(mniProject, "Project", "Project", false);
+            loadSearchEngine(mniView, new SearchTree().getTreeItems(), false);
 
-            
+//            stpMain.getScene().getWindow().setOnCloseRequest(e -> System.exit(0));
+
         } catch (IOException e) {
             errorMessage(e);
         }
     }
-    
-  
+
 }

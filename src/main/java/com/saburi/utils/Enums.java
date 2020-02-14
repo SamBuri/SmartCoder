@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package helpers;
+package com.saburi.utils;
 
 /**
  *
@@ -30,5 +30,15 @@ public class Enums {
     public static enum MenuTypes {
         Menu, SplitButton
     };
+    
+    public static enum FormMode {
+        Save, Update
+    }
+    
+    public enum SearchItemTypes {
+        Entinty, Revision
+    }
+    
+    public static enum PackageTypes {Entity, DBAcess, Controller, Util};
 
 }

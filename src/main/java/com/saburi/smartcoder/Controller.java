@@ -5,9 +5,10 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
-import helpers.Utilities;
-import static helpers.Utilities.addIfNotExists;
+import com.saburi.utils.Utilities;
+import static com.saburi.utils.Utilities.addIfNotExists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -23,16 +24,16 @@ import javafx.collections.transformation.FilteredList;
 public class Controller {
 
     private final String objectName;
-    private final List<Field> fields;
+    private final List<FieldDAO> fields;
     private final String objectNameDA;
     private final String objectNameController;
     private final String primaryKeyVariableName;
     private final String daGlobalVariable;
     private final String daVariableName;
-    private final Field primaryKey;
-    FilteredList<Field> subListFields;
+    private final FieldDAO primaryKey;
+    FilteredList<FieldDAO> subListFields;
 
-    public Controller(String objectName, List<Field> fields) {
+    public Controller(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
         this.fields = fields;
         this.objectNameDA = objectName.concat("DA");
@@ -76,7 +77,7 @@ public class Controller {
         String properties = "";
         properties += " private final " + objectNameDA + " " + daGlobalVariable + " = new " + objectNameDA + "();\n";
         List<String> globalRefObjects = new ArrayList<>();
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             if (!field.isHelper()) {
                 if (field.isCollection()) {
                     properties += "@FXML private " + field.getControlType().name() + "<" + field.getReferences() + "DA> " + field.getControlName() + ";\n";
@@ -98,12 +99,12 @@ public class Controller {
         properties = globalRefObjects.stream().map((string) -> "private final " + string + " o" + string + " = new " + string + "();").reduce(properties, String::concat);
 
         String tableColumns = "";
-        for (Field field : subListFields) {
+        for (FieldDAO field : subListFields) {
 
             String custom = field.getReferences();
-            List<Field> subFields = field.getSubFieldList();
+            List<FieldDAO> subFields = field.getSubFieldListDAO();
 
-            for (Field subField : subFields) {
+            for (FieldDAO subField : subFields) {
                 if (subField.isReferance()) {
                     tableColumns += subField.getReferencesDA() + " o" + subField.getReferencesDA() + " = new " + subField.getReferencesDA() + "();\n";
                 }
@@ -121,8 +122,8 @@ public class Controller {
     }
 
     public String setControlIDInInitialiser() {
-        Field idGeneratorObject = Utilities.getIDGenerator(fields);
-        Field IDHelperObject = Utilities.getIDHelper(fields);
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
+        FieldDAO IDHelperObject = Utilities.getIDHelper(fields);
         if (IDHelperObject == null) {
             return "";
         }
@@ -155,7 +156,7 @@ public class Controller {
         String imageButtonActions = "";
         String editableTable = "";
         String menuLoadCalls = "";
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
 
             if (field.isReferance() && !field.isCollection()) {
 
@@ -164,7 +165,7 @@ public class Controller {
                 } else {
 
                     if (field.getReferences().equalsIgnoreCase("LookupData")) {
-                        if (field.getEnumClass().equalsIgnoreCase("CommonEnums")) {
+                        if (field.getProjectID().equalsIgnoreCase("CommonEnums")) {
                             lookupDataLoadings += " loadLookupData(" + field.getControlName() + ", CommonObjectNames." + field.getFieldName().toUpperCase() + ");\n";
                             menuLoadCalls += "selectLookupData(cmiSelect" + field.getFieldName() + ", CommonObjectNames." + field.getFieldName().toUpperCase() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", false);";
                         } else {
@@ -198,10 +199,10 @@ public class Controller {
                 + numberValidator + numberFormator + editableTable;
 
         String editColumnMethodCall = "";
-        for (Field field : subListFields) {
-            List<Field> subFields = field.getSubFieldList();
+        for (FieldDAO field : subListFields) {
+            List<FieldDAO> subFields = field.getSubFieldListDAO();
 
-            for (Field subField : subFields) {
+            for (FieldDAO subField : subFields) {
                 editColumnMethodCall += "set" + field.getReferences() + subField.getFieldName() + "();\n";
             }
         }
@@ -214,12 +215,12 @@ public class Controller {
         String makeInitials = "";
         String saveVariables = "this.editSuccessful = false;";
 
-        List<Field> conField = fields.stream()
+        List<FieldDAO> conField = fields.stream()
                 .filter((p) -> !p.isCollection())
                 .filter((p) -> !p.isHelper())
                 .collect(Collectors.toList());
         for (int i = 0; i < conField.size(); i++) {
-            Field field = conField.get(i);
+            FieldDAO field = conField.get(i);
 
             makeInitials += field.getVariableName();
 
@@ -229,7 +230,7 @@ public class Controller {
         }
 
         for (int i = 0; i < fields.size(); i++) {
-            Field field = this.fields.get(i);
+            FieldDAO field = this.fields.get(i);
             if (!field.isHelper()) {
 
                 saveVariables += field.initialseSavableVariable();
@@ -241,7 +242,7 @@ public class Controller {
         body += objectNameDA + " " + daVariableName + "= new " + objectNameDA + "(" + makeInitials + ");\n";
 
         if (!subListFields.isEmpty()) {
-            for (Field field : fields) {
+            for (FieldDAO field : fields) {
                 if (field.isCollection()) {
                     body += field.getVariableName() + "DAs.forEach(e->{\n"
                             + "                e.set" + objectName + "(" + daVariableName + ".get" + objectName + "());\n"
@@ -269,7 +270,7 @@ public class Controller {
 
     private String loadData() {
         String updateBody = "";
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             if (field.isCollection()) {
                 updateBody += field.getControlName() + ".setItems(FXCollections.observableArrayList(" + daVariableName + ".get" + field.getFieldName() + "DAs()));";
                 updateBody += "addRow(" + field.getControlName() + ", new " + field.getReferencesDA() + "());\n";
@@ -298,7 +299,7 @@ public class Controller {
 
     private String clear() {
         String clear = "";
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             clear += field.clearLine();
         }
         clear += setControlIDInInitialiser();
@@ -308,8 +309,8 @@ public class Controller {
     private String getSetIDControl() throws Exception {
 
         String body;
-        Field idHelperObject = Utilities.getIDHelper(fields);
-        Field idGeneratorObject = Utilities.getIDGenerator(fields);
+        FieldDAO idHelperObject = Utilities.getIDHelper(fields);
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
         if (idGeneratorObject != null && idHelperObject == null) {
             throw new Exception("The ID generator does not have a helper column");
         }
@@ -389,10 +390,10 @@ public class Controller {
                 + "        }\n";
 
         String editColumn = "";
-        for (Field field : subListFields) {
-            List<Field> subFields = field.getSubFieldList();
+        for (FieldDAO field : subListFields) {
+            List<FieldDAO> subFields = field.getSubFieldListDAO();
 
-            for (Field subField : subFields) {
+            for (FieldDAO subField : subFields) {
                 editColumn += subField.editTableColumnMethod(field);
             }
         }

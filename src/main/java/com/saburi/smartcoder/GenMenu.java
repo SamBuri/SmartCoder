@@ -5,20 +5,19 @@
  */
 package com.saburi.smartcoder;
 
-import helpers.Enums;
-import static helpers.Utilities.isNullOrEmpty;
+import com.saburi.utils.Enums;
 
 /**
  *
  * @author CLINICMASTER13
  */
-public class Menu {
+public class GenMenu {
 
     public static String makeMenu(String objectName, String objectCaption, Enums.MenuTypes menuType, String parentMenu) {
         String parentMenuHolder;
         String fxmlMenu;
         String menu = "";
-        if (isNullOrEmpty(parentMenu)) {
+        if (parentMenu.isBlank()) {
             parentMenuHolder = objectName;
         } else {
             if (!parentMenu.endsWith(objectName)) {

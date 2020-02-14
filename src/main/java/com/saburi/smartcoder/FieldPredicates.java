@@ -5,6 +5,7 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
 import java.util.function.Predicate;
 
@@ -14,27 +15,27 @@ import java.util.function.Predicate;
  */
 public class FieldPredicates {
   
-    public static Predicate<Field> isHelper(){
+    public static Predicate<FieldDAO> isHelper(){
      return (p) -> p.isHelper();
 
     }
     
-    public static Predicate<Field> isPrimaryKey(){
+    public static Predicate<FieldDAO> isPrimaryKey(){
      return (p) -> p.isPrimaryKey();
 
     }
     
-    public static Predicate<Field> isIDGenerator(){
+    public static Predicate<FieldDAO> isIDGenerator(){
      return (p) -> p.isIDGenerator();
 
     }
     
-    public static Predicate<Field> isDIsplayKey(){
+    public static Predicate<FieldDAO> isDIsplayKey(){
      return (p) -> p.isDisplayKey();
 
     }
     
-    public static Predicate<Field> hasSubFields(){
+    public static Predicate<FieldDAO> hasSubFields(){
      return (p) -> p.makeEditableTable();
 
     }

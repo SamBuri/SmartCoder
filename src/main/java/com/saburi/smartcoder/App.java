@@ -1,6 +1,8 @@
 package com.saburi.smartcoder;
 
-import helpers.FXUIUtils;
+import com.saburi.utils.FXUIUtils;
+import com.saburi.utils.Navigation;
+import static com.saburi.utils.Navigation.styleControls;
 import javafx.application.Application;
 import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
@@ -19,7 +21,8 @@ public class App extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         try {
-             scene = new Scene(loadFXML("Scene"), 640, 480);
+             scene = new Scene(Navigation.loadFXML("Scene"), 640, 480);
+             scene.getStylesheets().add(styleControls);
         stage.setScene(scene);
         stage.setTitle("Smart Coder");
         stage.setScene(scene);
@@ -32,14 +35,9 @@ public class App extends Application {
         }
     }
 
-    static void setRoot(String fxml) throws IOException {
-        scene.setRoot(loadFXML(fxml));
-    }
+   
 
-    private static Parent loadFXML(String fxml) throws IOException {
-        FXMLLoader fxmlLoader = new FXMLLoader(App.class.getResource(fxml + ".fxml"));
-        return fxmlLoader.load();
-    }
+    
 
     public static void main(String[] args) {
         launch();

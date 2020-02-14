@@ -3,10 +3,11 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package helpers;
+package com.saburi.utils;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
-import static helpers.FXUIUtils.errorMessage;
+import static com.saburi.utils.FXUIUtils.errorMessage;
 import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
@@ -130,9 +131,6 @@ public class Utilities {
         }
     }
 
-    public static boolean isNullOrEmpty(String string) {
-        return string.isEmpty() || string.equals("");
-    }
 
     public static List addIfNotExists(List list, Object o) {
         if (!list.contains(o)) {
@@ -241,8 +239,8 @@ public class Utilities {
 
     }
 
-    public static boolean hasHelper(List<Field> fields) {
-        FilteredList<Field> helperList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+    public static boolean hasHelper(List<FieldDAO> fields) {
+        FilteredList<FieldDAO> helperList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
         helperList.setPredicate(FieldPredicates.isHelper());
         return helperList.size() > 0;
 
@@ -252,8 +250,8 @@ public class Utilities {
         return fieldName.substring(0, 1).toLowerCase().concat(fieldName.substring(1, fieldName.length()));
     }
 
-    public static Field getPrimaryKey(List<Field> fields) {
-        for (Field field : fields) {
+    public static FieldDAO getPrimaryKey(List<FieldDAO> fields) {
+        for (FieldDAO field : fields) {
             if (field.getKey().equalsIgnoreCase(Enums.keys.Primary.name())) {
                 return field;
             }
@@ -261,8 +259,8 @@ public class Utilities {
         return null;
     }
 
-    public static Field getIDHelper(List<Field> fields) {
-        for (Field field : fields) {
+    public static FieldDAO getIDHelper(List<FieldDAO> fields) {
+        for (FieldDAO field : fields) {
             if (field.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.ID_Helper.name())) {
                 return field;
             }
@@ -270,8 +268,8 @@ public class Utilities {
         return null;
     }
 
-    public static Field getIDGenerator(List<Field> fields) {
-        for (Field field : fields) {
+    public static FieldDAO getIDGenerator(List<FieldDAO> fields) {
+        for (FieldDAO field : fields) {
             if (field.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.ID_Generator.name())) {
                 return field;
             }

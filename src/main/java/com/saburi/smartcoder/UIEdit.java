@@ -5,10 +5,11 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
 import com.saburi.model.Settings;
-import helpers.Utilities;
-import static helpers.Utilities.addIfNotExists;
+import com.saburi.utils.Utilities;
+import static com.saburi.utils.Utilities.addIfNotExists;
 import java.util.ArrayList;
 import java.util.List;
 import javafx.collections.FXCollections;
@@ -22,9 +23,9 @@ public class UIEdit {
 
     private final String objectName;
     private final String objectNameController;
-    private final List<Field> fields;
+    private final List<FieldDAO> fields;
 
-    public UIEdit(String objectName, List<Field> fields) {
+    public UIEdit(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
         this.fields = fields;
         this.objectNameController = objectName.concat("Controller");
@@ -48,7 +49,7 @@ public class UIEdit {
             if (f.makeEditableTable()) {
                 addIfNotExists(impts, "<?import javafx.scene.control.TableColumn?>\n");
                 addIfNotExists(impts, "<?import javafx.scene.control.cell.PropertyValueFactory?>\n");
-                FilteredList<Field> subListFields = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+                FilteredList<FieldDAO> subListFields = new FilteredList<>(FXCollections.observableList(fields), e -> true);
                 subListFields.setPredicate(FieldPredicates.hasSubFields());
                 if (subListFields.size() > 1) {
                 }
@@ -69,7 +70,7 @@ public class UIEdit {
                 + "<Insets bottom=\"10.0\" left=\"10.0\" right=\"10.0\" top=\"10.0\" />\n"
                 + "</padding>\n";
 
-        FilteredList<Field> subListFields = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+        FilteredList<FieldDAO> subListFields = new FilteredList<>(FXCollections.observableList(fields), e -> true);
         subListFields.setPredicate(FieldPredicates.hasSubFields());
          Settings settings = Settings.readProperties();
         int endValue = settings.getLineBreak();
@@ -81,7 +82,7 @@ public class UIEdit {
         int y = 0;
         for (int i = 0; i < size; i++) {
 
-            Field field = fields.get(i);
+            FieldDAO field = fields.get(i);
 
             if (!(field.isHelper() || field.isCollection())) {
                 body += field.makeUIFXMLEditLine(objectName, x, y);
@@ -100,13 +101,13 @@ public class UIEdit {
     private String listComtrols() throws Exception {
         String body = "";
 
-        FilteredList<Field> subListFields = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+        FilteredList<FieldDAO> subListFields = new FilteredList<>(FXCollections.observableList(fields), e -> true);
         subListFields.setPredicate(FieldPredicates.hasSubFields());
 
         if (!subListFields.isEmpty()) {
             if (subListFields.size() == 1) {
-                Field field = subListFields.get(0);
-                List<Field> subFields = field.getSubFieldList();
+                FieldDAO field = subListFields.get(0);
+                List<FieldDAO> subFields = field.getSubFieldListDAO();
                 String tableColumn = "";
                 tableColumn = subFields.stream().map((subfield) -> subfield.getTableColumn(objectName, field.getReferences(), "true")).reduce(tableColumn, String::concat);
                 String contextMenu = "<contextMenu>\n"
@@ -119,8 +120,8 @@ public class UIEdit {
                 body += Utilities.makeTable(field.getFieldName(), tableColumn, contextMenu);
             } else {
                 String tabs = "";
-                for (Field field : subListFields) {
-                    List<Field> subFields = field.getSubFieldList();
+                for (FieldDAO field : subListFields) {
+                    List<FieldDAO> subFields = field.getSubFieldListDAO();
                     String tableColumn = "";
                     tableColumn = subFields.stream().map((subfield) -> subfield.getTableColumn(objectName, field.getReferences(), "true")).reduce(tableColumn, String::concat);
 

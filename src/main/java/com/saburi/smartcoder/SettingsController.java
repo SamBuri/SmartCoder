@@ -6,9 +6,9 @@
 package com.saburi.smartcoder;
 
 import com.saburi.model.Settings;
-import static helpers.FXUIUtils.errorMessage;
-import static helpers.FXUIUtils.getInt;
-import static helpers.FXUIUtils.message;
+import static com.saburi.utils.FXUIUtils.errorMessage;
+import static com.saburi.utils.FXUIUtils.getInt;
+import static com.saburi.utils.FXUIUtils.message;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;

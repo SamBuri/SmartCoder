@@ -1,0 +1,24 @@
+[
+  {
+    "projectID": 1,
+    "projectName": "Commom",
+    "commonProjectID": 1,
+    "baseDir": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src",
+    "entityPackage": "com.saburi.common.entities",
+    "dbAccessPackage": "com.saburi.common.dbaccess",
+    "controllerPackage": "com.saburi.common.controllers",
+    "utilPackage": "com.saburi.common.utils",
+    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\resources\\com\\saburi\\common\\main"
+  },
+  {
+    "projectID": 2,
+    "projectName": "Schoolsoft",
+    "commonProjectID": 1,
+    "baseDir": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft",
+    "entityPackage": "com.saburi.schoolsoft.entities",
+    "dbAccessPackage": "com.saburi.schoolsoft.dbaccess",
+    "controllerPackage": "com.saburi.schoolsoft.controllers",
+    "utilPackage": "com.saburi.schoolsoft.utils",
+    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\resources\\com\\saburi\\schoolsoft\\main"
+  }
+]

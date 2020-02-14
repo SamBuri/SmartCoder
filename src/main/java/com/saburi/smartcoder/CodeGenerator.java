@@ -5,6 +5,7 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
 import java.util.Arrays;
 import java.util.List;
@@ -17,16 +18,16 @@ import javafx.collections.transformation.FilteredList;
  */
 public class CodeGenerator {
 
-    protected List<Field> defaulFields = Arrays.asList(new Field("UserID", "User ID", "String"),
-            new Field("UserFullName", "User Full Name", "String"),
-            new Field("ClientMachine", "Client Machine", "String"),
-            new Field("RecordDateTime", "Record Date Time", "LocalDateTime"),
-            new Field("LastUpdateDateTime", "Last Update", "LocalDateTime"));
+    protected List<FieldDAO> defaulFields = Arrays.asList(new FieldDAO(new Field("UserID", "User ID", "String")),
+            new FieldDAO(new Field("UserFullName", "User Full Name", "String")),
+            new FieldDAO(new Field("ClientMachine", "Client Machine", "String")),
+            new FieldDAO(new Field("RecordDateTime", "Record Date Time", "LocalDateTime")),
+            new FieldDAO(new Field("LastUpdateDateTime", "Last Update", "LocalDateTime")));
 
-    public boolean validate(List<Field> fields) throws Exception {
+    public boolean validate(List<FieldDAO> fields) throws Exception {
         try {
 
-            FilteredList<Field> primaryKeyList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+            FilteredList<FieldDAO> primaryKeyList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
             primaryKeyList.setPredicate(FieldPredicates.isPrimaryKey());
 
             if (fields.isEmpty()) {
@@ -39,26 +40,26 @@ public class CodeGenerator {
                 throw new Exception("Composite primary key is not allowed. Please select a primary key");
             }
 
-            FilteredList<Field> displayList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+            FilteredList<FieldDAO> displayList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
             displayList.setPredicate(FieldPredicates.isDIsplayKey());
             if (displayList.isEmpty()) {
                 throw new Exception("You must enter atleast one display key");
             }
 
-            FilteredList<Field> helperList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+            FilteredList<FieldDAO> helperList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
             helperList.setPredicate(FieldPredicates.isHelper());
             if (!helperList.isEmpty()) {
                 if (helperList.size() > 1) {
                     throw new Exception("You cannot have more than 1 ID Helpers");
                 } else {
-                    Field idhelperField = helperList.get(0);
+                    FieldDAO idhelperField = helperList.get(0);
                     if (!(idhelperField.getDataType().equalsIgnoreCase("int") || idhelperField.getDataType().equalsIgnoreCase("integer"))) {
                         throw new Exception("Un suppported data type" + idhelperField + " for ID Helper. Please use int instead");
                     }
                 }
             }
 
-            FilteredList<Field> generatorList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
+            FilteredList<FieldDAO> generatorList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
             generatorList.setPredicate(FieldPredicates.isIDGenerator());
             if (!generatorList.isEmpty()) {
                 if (generatorList.size() > 1) {

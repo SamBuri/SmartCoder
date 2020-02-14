@@ -5,10 +5,11 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
-import helpers.Utilities;
-import static helpers.Utilities.addIfNotExists;
-import static helpers.Utilities.makeMethod;
+import com.saburi.utils.Utilities;
+import static com.saburi.utils.Utilities.addIfNotExists;
+import static com.saburi.utils.Utilities.makeMethod;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -24,16 +25,16 @@ import javafx.collections.transformation.FilteredList;
 public class DBAcess extends CodeGenerator {
 
     private String objectName;
-    private List<Field> fields;
+    private List<FieldDAO> fields;
 //    private final List<Field> allFields;
     private String objectNameDA;
     private final String objectVariableName;
     private final String primaryKeyVariableName;
     private final String objectNameDAVariableName;
     private final String superClass = "DBAccess";
-    private final FilteredList<Field> collectionList;
+    private final FilteredList<FieldDAO> collectionList;
 
-    public DBAcess(String objectName, List<Field> fields) {
+    public DBAcess(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
         this.fields = fields;
 //        this.allFields = fields;
@@ -55,11 +56,11 @@ public class DBAcess extends CodeGenerator {
         this.objectNameDA = objectName.concat("DA");
     }
 
-    public List<Field> getFields() {
+    public List<FieldDAO> getFields() {
         return fields;
     }
 
-    public void setFields(List<Field> fields) {
+    public void setFields(List<FieldDAO> fields) {
         this.fields = fields;
     }
 
@@ -89,15 +90,15 @@ public class DBAcess extends CodeGenerator {
 
     public String makeProperties() {
         String properties = "private " + this.objectName.concat(" ").concat(objectVariableName).concat("= new " + this.objectName + "();\n");
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             properties += field.daPropertyLine();
         }
         return properties;
     }
 
     private String callNextIDHelper() throws Exception {
-        Field idHelperObject = Utilities.getIDHelper(fields);
-        Field idGeneratorObject = Utilities.getIDGenerator(fields);
+        FieldDAO idHelperObject = Utilities.getIDHelper(fields);
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
         if (idGeneratorObject != null && idHelperObject == null) {
             throw new Exception("The ID generator does not have a helper column");
         }
@@ -136,12 +137,12 @@ public class DBAcess extends CodeGenerator {
 
         String construtorLine = "";
 
-        List<Field> constructorFields = fields.stream()
+        List<FieldDAO> constructorFields = fields.stream()
                 .filter((p) -> !p.isCollection())
                 .filter((p) -> !p.isHelper()).collect(Collectors.toList());
 
         for (int i = 0; i < constructorFields.size(); i++) {
-            Field field = constructorFields.get(i);
+            FieldDAO field = constructorFields.get(i);
 //            if (field.isReferance() && !field.getEnumerated()) {
 //                if (i == 0) {
 //                    construtorLine += field.getReferencesDA() + " " + field.getVariableNameDA();
@@ -163,7 +164,7 @@ public class DBAcess extends CodeGenerator {
 
         String makeInitials = "";
         for (int i = 0; i < fields.size(); i++) {
-            Field field = this.fields.get(i);
+            FieldDAO field = this.fields.get(i);
             if (field.isCollection()) {
 //                construtorLine += field.getDeclaration(false, false);
 //                makeInitials += field.getVariableName();
@@ -215,7 +216,7 @@ public class DBAcess extends CodeGenerator {
 
     private String makeSearchColumn() {
         String searchColumnBody = "";
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             searchColumnBody += field.makeSearchColumn();
         }
         searchColumnBody += "this.searchColumns.addAll(this.getDefaultSearchColumns());";
@@ -225,7 +226,7 @@ public class DBAcess extends CodeGenerator {
 
     private String initialiseProperties() {
         String constructorBody = "this.dBEntity = " + objectVariableName.concat(";\n");
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             constructorBody += field.daInitialiseProperties(objectVariableName);
         }
         constructorBody += "initCommonProprties();";
@@ -247,8 +248,8 @@ public class DBAcess extends CodeGenerator {
 //        return setters;
 //    }
     private String getNextIDHelper() throws Exception {
-        Field idHelperObject = Utilities.getIDHelper(fields);
-        Field idGeneratorObject = Utilities.getIDGenerator(fields);
+        FieldDAO idHelperObject = Utilities.getIDHelper(fields);
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
 
         if (idGeneratorObject != null && idHelperObject == null) {
             throw new Exception("The ID generator does not have a helper column");
@@ -279,9 +280,9 @@ public class DBAcess extends CodeGenerator {
     }
 
     private String getNextIDColumn() throws Exception {
-        Field idHelperObject = Utilities.getIDHelper(fields);
-        Field idGeneratorObject = Utilities.getIDGenerator(fields);
-        Field primaryKeyObject = Utilities.getPrimaryKey(fields);
+        FieldDAO idHelperObject = Utilities.getIDHelper(fields);
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
+        FieldDAO primaryKeyObject = Utilities.getPrimaryKey(fields);
         if (idGeneratorObject != null && idHelperObject == null) {
             throw new Exception("The ID generator does not have a helper column");
         }

@@ -5,11 +5,10 @@
  */
 package com.saburi.smartcoder;
 
-import com.saburi.model.Field;
-import helpers.Enums;
-import helpers.Utilities;
-import static helpers.Utilities.addIfNotExists;
-import static helpers.Utilities.isNullOrEmpty;
+import com.saburi.dataacess.FieldDAO;
+import com.saburi.utils.Enums;
+import com.saburi.utils.Utilities;
+import static com.saburi.utils.Utilities.addIfNotExists;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -21,7 +20,7 @@ import java.util.stream.Collectors;
 public class Entity extends CodeGenerator {
 
     String objectName;
-    List<Field> fields;
+    List<FieldDAO> fields;
     String objectNameDA;
     String objectNameController;
     String objectNameViewController;
@@ -30,7 +29,7 @@ public class Entity extends CodeGenerator {
     String primaryKeyVariableName;
     String objectVariableName;
 
-    public Entity(String objectName, List<Field> fields) {
+    public Entity(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
         this.fields = fields;
         this.objectNameDA = objectName.concat("DA");
@@ -60,7 +59,7 @@ public class Entity extends CodeGenerator {
 
     public String makeAnnotedFields() {
         String annotedFields = "";
-        for (Field field : this.fields) {
+        for (FieldDAO field : this.fields) {
             annotedFields += field.fiedAnnotations(objectName, primaryKeyVariableName);
             annotedFields += "private " + field.getDeclaration(true, true);
         }
@@ -72,7 +71,7 @@ public class Entity extends CodeGenerator {
         String construtorLine = "";
         String construtorInitials = "";
         for (int i = 0; i < fields.size(); i++) {
-            Field field = this.fields.get(i);
+            FieldDAO field = this.fields.get(i);
 
             if (!field.isCollection()) {
 
@@ -90,7 +89,7 @@ public class Entity extends CodeGenerator {
 
     public String makeProperties() {
         String properties = "";
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             properties += field.makeProperties();
         }
         return properties;
@@ -106,7 +105,7 @@ public class Entity extends CodeGenerator {
     public String overriddenID() {
 
         String primaryKey = "";
-        for (Field field : fields) {
+        for (FieldDAO field : fields) {
             if (field.getKey().equalsIgnoreCase(Enums.keys.Primary.name())) {
                 primaryKey = field.getVariableName();
             }
@@ -116,7 +115,7 @@ public class Entity extends CodeGenerator {
             return "";
         }
         String method = " @Override\npublic Object getId(){\n";
-        if (!isNullOrEmpty(primaryKey)) {
+        if (!primaryKey.isBlank()) {
             method += "return this." + primaryKey + ";\n";
         } else {
             method += " throw new UnsupportedOperationException(\"Not supported yet.\");\n";
@@ -129,9 +128,9 @@ public class Entity extends CodeGenerator {
         String displayKey = "";
         String displayVariableName = "";
 
-        List<Field> displayKeys = fields.stream().filter((p) -> p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Display.name())).collect(Collectors.toList());
+        List<FieldDAO> displayKeys = fields.stream().filter((p) -> p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Display.name())).collect(Collectors.toList());
 
-        for (Field field : displayKeys) {
+        for (FieldDAO field : displayKeys) {
             if (field.isReferance()) {
                 displayVariableName = field.getVariableName().concat(".getDisplayKey()");
             } else {
@@ -150,7 +149,7 @@ public class Entity extends CodeGenerator {
             return "";
         }
         String method = " @Override\npublic String getDisplayKey(){\n";
-        if (!isNullOrEmpty(displayKey)) {
+        if (!displayKey.isBlank()) {
             method += "return this." + displayKey + ";\n";
         } else {
             method += " throw new UnsupportedOperationException(\"Not supported yet.\");\n";

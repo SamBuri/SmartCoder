@@ -3,7 +3,7 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package helpers;
+package com.saburi.utils;
 
 import javafx.beans.value.ChangeListener;
 import javafx.beans.value.ObservableValue;
@@ -21,7 +21,10 @@ import javafx.scene.input.KeyCode;
 import javafx.scene.input.KeyEvent;
 import javafx.util.Callback;
 import javafx.util.StringConverter;
+import javafx.util.converter.BooleanStringConverter;
 import javafx.util.converter.DefaultStringConverter;
+import javafx.util.converter.DoubleStringConverter;
+import javafx.util.converter.IntegerStringConverter;
 
 /**
  *
@@ -45,6 +48,19 @@ public class EditCell <S, T> extends TextFieldTableCell<S, T> {
 			final StringConverter<T> converter) {
 		return list -> new EditCell<S, T>(converter);
 	}
+        public static <S> Callback<TableColumn<S, Integer>, TableCell<S, Integer>> forIntTableColumn() {
+		return forTableColumn(new IntegerStringConverter());
+	}
+        
+         public static <S> Callback<TableColumn<S, Double>, TableCell<S, Double>> forDoubleTableColumn() {
+		return forTableColumn(new DoubleStringConverter());
+	}
+       
+        public static <S> Callback<TableColumn<S, Boolean>, TableCell<S, Boolean>> forBooleanTableColumn() {
+		return forTableColumn(new BooleanStringConverter());
+	}
+       
+
 
 	@Override
 	public void startEdit() {

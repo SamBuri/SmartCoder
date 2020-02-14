@@ -1,0 +1,48 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.layout.BorderPane?>
+<?import javafx.scene.layout.HBox?>
+<?import javafx.scene.layout.GridPane?>
+<?import javafx.scene.layout.VBox?>
+<?import javafx.geometry.Insets?>
+<?import javafx.scene.control.ContextMenu?>
+<?import javafx.scene.control.MenuItem?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.TextField?>
+<?import javafx.scene.control.ComboBox?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.Button?>
+<VBox id="SubCounty"  spacing="10"  xmlns="http://javafx.com/javafx/10.0.1" xmlns:fx="http://javafx.com/fxml/1" fx:controller="com.saburi.controller.ViewController">
+    <children>
+         <HBox spacing= "10">
+                <padding>
+                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                </padding>
+                <Label fx:id="lblSearch" minWidth ="100" id="View" GridPane.columnIndex ="0" GridPane.rowIndex ="0" text="Search" />
+                <ComboBox fx:id="cboSearchColumn" minWidth ="100" id="View" GridPane.columnIndex ="0" GridPane.rowIndex ="0" promptText ="Select Column" />
+                <ComboBox fx:id="cboSearchType" minWidth ="100" id="View" GridPane.columnIndex ="0" GridPane.rowIndex ="0" promptText ="Select" />
+                <TextField fx:id="txtSearch" minWidth ="100" id="View" GridPane.columnIndex ="1" GridPane.rowIndex ="0" promptText="Search" />
+                <TextField id="View" fx:id="txtSecondValue" minWidth="100" promptText="Second Value" visible ="false" GridPane.columnIndex="1" GridPane.rowIndex="0" />
+            </HBox>
+            <TableView fx:id="tblDBAccess" id = "View" VBox.vgrow="ALWAYS" minHeight="450" minWidth="600">
+                <padding>
+                    <Insets bottom="10.0" left="10.0" right="10.0" top="10.0" />
+                </padding>
+            
+                <contextMenu>
+                    <ContextMenu fx:id ="cmuView" id = "View">
+                        <items>
+                            <MenuItem mnemonicParsing="false" fx:id ="cmiUpdate" id = "Update" text="Edit" />
+                            <MenuItem mnemonicParsing="false" fx:id ="cmiDelete" id = "Delete" text="Delete"/>
+                            <MenuItem mnemonicParsing="false" fx:id ="cmiSelectAll" id = "View" text="Select All" />
+                        </items>
+                    </ContextMenu>
+                </contextMenu>
+            </TableView>
+        
+
+    </children>
+</VBox>
+

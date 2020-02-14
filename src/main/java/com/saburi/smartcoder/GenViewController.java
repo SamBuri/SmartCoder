@@ -5,13 +5,13 @@
  */
 package com.saburi.smartcoder;
 
-import helpers.Utilities;
+import com.saburi.utils.Utilities;
 
 /**
  *
  * @author CLINICMASTER13
  */
-public class ViewController {
+public class GenViewController {
 
     private final String objectName;
     private final String objectNameDA;
@@ -19,7 +19,7 @@ public class ViewController {
 
     private final String daVariableName;
 
-    public ViewController(String objectName) {
+    public GenViewController(String objectName) {
         this.objectName = objectName;
         this.objectNameDA = objectName.concat("DA");
         this.objectNameViewController = objectName.concat("ViewController");
