@@ -7,6 +7,7 @@ package com.saburi.utils;
 
 import com.saburi.dataacess.DataAccess;
 import com.saburi.model.Model;
+import com.saburi.model.Project;
 import java.io.ByteArrayInputStream;
 import java.io.File;
 import java.io.InputStream;
@@ -125,6 +126,29 @@ public class FXUIUtils {
                 DirectoryChooser directoryChooser = new DirectoryChooser();
                 directoryChooser.setTitle("Choose Directory");
                 File file = directoryChooser.showDialog(button.getScene().getWindow());
+                String path = file.getAbsolutePath();
+                if (node instanceof TextField){
+                     ((TextField) node).setText(path);
+                    
+                }
+                else if (node instanceof TextArea){
+                    ((TextArea) node).setText(path);
+                    
+                }
+               
+            } catch (Exception e) {
+            }
+        });
+
+    }
+    
+    public static void browseFile(Button button, Node node) {
+        button.setOnAction(a -> {
+            try {
+
+                FileChooser fileChooser = new FileChooser();
+                fileChooser.setTitle("Choose Directory");
+                File file = fileChooser.showOpenDialog(button.getScene().getWindow());
                 String path = file.getAbsolutePath();
                 if (node instanceof TextField){
                      ((TextField) node).setText(path);
@@ -497,6 +521,29 @@ public class FXUIUtils {
                     setText("");
                 } else {
                     setText(item == null ? "" : item.getDisplay());
+                }
+            }
+        };
+        combo.setCellFactory(factory);
+        combo.setButtonCell(factory.call(null));
+    }
+
+     public static void loadProjects(List<Project> projects, ComboBox<Project> combo) {
+        combo.getItems().clear();
+        combo.getItems().add(null);
+        combo.getItems().addAll(projects);
+        combo.setValue(null);
+        Callback<ListView<Project>, ListCell<Project>> factory
+                = (lv)
+                -> new ListCell<Project>() {
+            @Override
+            protected void updateItem(Project item,
+                    boolean empty) {
+                super.updateItem(item, empty);
+                if (empty) {
+                    setText("");
+                } else {
+                    setText(item == null ? "" : item.getProjectName());
                 }
             }
         };

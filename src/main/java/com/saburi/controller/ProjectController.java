@@ -6,8 +6,8 @@ package com.saburi.controller;
 
 import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
-import com.saburi.utils.FXUIUtils;
 import static com.saburi.utils.FXUIUtils.browseDirectory;
+import static com.saburi.utils.FXUIUtils.browseFile;
 import static com.saburi.utils.FXUIUtils.errorMessage;
 import static com.saburi.utils.FXUIUtils.getInt;
 import static com.saburi.utils.FXUIUtils.getText;
@@ -21,7 +21,6 @@ import javafx.fxml.FXML;
 import javafx.scene.control.Button;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
-import javafx.stage.Stage;
 
 public class ProjectController extends EditController {
 
@@ -44,16 +43,28 @@ public class ProjectController extends EditController {
     @FXML
     private TextField txtObjectNameClass;
     @FXML
+    private TextField txtNavigationClass;
+
+    @FXML
     private TextArea txaEntityFolder;
     @FXML
     private TextArea txaDBAcessFolder;
     @FXML
-    private TextArea txaControllerFolde;
+    private TextArea txaControllerFolder;
     @FXML
     private TextArea txaResourceFolder;
+    @FXML
+    private TextArea txaMenuControllerFile;
+    @FXML
+    private TextArea txaSearchTreeFile;
+    @FXML
+    private TextArea txaMenuUIFile;
+    @FXML
+    private TextArea txaSQLFile;
 
     @FXML
-    private Button btnEntityFolder, btnDBAcessFolder, btnControllerFolder, btnResourceFolder;
+    private Button btnEntityFolder, btnDBAcessFolder, btnControllerFolder, btnResourceFolder,
+            btnMenuControllerFile, btnSearchTreeFile, btnMenuUIFile, btnSQLFile;
     private final ProjectDAO oProjectDA = new ProjectDAO();
 
     @Override
@@ -70,8 +81,12 @@ public class ProjectController extends EditController {
 
             browseDirectory(btnEntityFolder, txaEntityFolder);
             browseDirectory(btnDBAcessFolder, txaDBAcessFolder);
-            browseDirectory(btnControllerFolder, txaControllerFolde);
+            browseDirectory(btnControllerFolder, txaControllerFolder);
             browseDirectory(btnResourceFolder, txaResourceFolder);
+            browseFile(btnMenuUIFile, txaMenuUIFile);
+            browseFile(btnMenuControllerFile, txaMenuControllerFile);
+            browseFile(btnSQLFile, txaSQLFile);
+            browseFile(btnSearchTreeFile, txaSearchTreeFile);
             this.primaryKeyControl = txtProjectID;
             this.dbAccess = oProjectDA;
             //this.minSize = 360;
@@ -94,12 +109,17 @@ public class ProjectController extends EditController {
             String utilPackage = getText(txtUtilPackage, "Util Package");
             String enumClass = getText(txtEnumClass, "Enum Class");
             String objectNameClass = getText(txtObjectNameClass, "Object Name Class");
+            String navigationClass = getText(txtNavigationClass, "Navigation Class");
             String entityFolder = getText(txaEntityFolder, "Entity Folder");
             String dBAcessFolder = getText(txaDBAcessFolder, "DB Access Folder");
-            String controllerFolde = getText(txaControllerFolde, "Controller Folder");
+            String controllerFolder = getText(txaControllerFolder, "Controller Folder");
             String resourceFolder = getText(txaResourceFolder, "Resource Folder");
+            String menuControllerFile = getText(txaMenuControllerFile, "Menu Controller File");
+            String searchTreeFile = getText(txaSearchTreeFile, "Search Tree File");
+            String menuUIFile = getText(txaMenuUIFile, "Menu UI File");
+            String sQLFile = getText(txaSQLFile, "SQL File");
 
-            Project project = new Project(projectID, projectName, commonProjectID, entityPackage, dBAccessPackage, contollerPackage, utilPackage, enumClass, objectNameClass, entityFolder, dBAcessFolder, controllerFolde, resourceFolder);
+            Project project = new Project(projectID, projectName, commonProjectID, entityPackage, dBAccessPackage, contollerPackage, utilPackage, enumClass, objectNameClass, navigationClass, entityFolder, dBAcessFolder, controllerFolder, resourceFolder, menuControllerFile, searchTreeFile, menuUIFile, sQLFile);
             ProjectDAO projectDAO = new ProjectDAO(project);
             projectDAO.save();
             this.dbAccess = projectDAO;
@@ -112,22 +132,7 @@ public class ProjectController extends EditController {
         }
     }
 
-    protected void delete() {
-//        try {
-//            int projectID = getInt(txtProjectID, "Project ID");
-//            ProjectDA projectDA = oProjectDA.get(projectID);
-//            if (!warningOk("Confirm Delete", "You are about to delete a record with ID: " + projectID + " Are you sure you want to continue?", "Remember this action cannot be un done")) {
-//                return;
-//            }
-//            if (projectDA.delete()) {
-//                message("Deleted Successfully");
-//                this.clear();
-//            }
-//        } catch (Exception e) {
-//            errorMessage(e);
-//        }
-    }
-
+    
     @Override
     public void loadData() {
         try {
@@ -150,10 +155,15 @@ public class ProjectController extends EditController {
                 txtUtilPackage.setText(project.getUtilPackage());
                 txtEnumClass.setText(project.getEnumClass());
                 txtObjectNameClass.setText(project.getObjectNameClass());
+                txtNavigationClass.setText(project.getNavigationClass());
                 txaEntityFolder.setText(project.getEntityFolder());
                 txaDBAcessFolder.setText(project.getDBAcessFolder());
-                txaControllerFolde.setText(project.getControllerFolde());
+                txaControllerFolder.setText(project.getControllerFolder());
                 txaResourceFolder.setText(project.getResourceFolder());
+                txaMenuControllerFile.setText(project.getMenuControllerFile());
+                txaSearchTreeFile.setText(project.getSearchTreeFile());
+                txaMenuUIFile.setText(project.getMenuUIFile());
+                txaSQLFile.setText(project.getSQLFile());
 
             }
 
@@ -172,10 +182,15 @@ public class ProjectController extends EditController {
         txtUtilPackage.clear();
         txtEnumClass.clear();
         txtObjectNameClass.clear();
+        txtNavigationClass.clear();
         txaEntityFolder.clear();
         txaDBAcessFolder.clear();
-        txaControllerFolde.clear();
+        txaControllerFolder.clear();
         txaResourceFolder.clear();
+        txaMenuControllerFile.clear();
+        txaSearchTreeFile.clear();
+        txaMenuUIFile.clear();
+        txaSQLFile.clear();
 
     }
 

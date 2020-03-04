@@ -7,6 +7,7 @@ package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
+import com.saburi.model.Project;
 import com.saburi.utils.Utilities;
 import java.util.ArrayList;
 import java.util.List;
@@ -81,8 +82,8 @@ public class UIView extends CodeGenerator {
 
     }
 
-    public String create() {
-        return new FXMLFile(imports(), makeBody()).create(objectName, objectNameController, "", false);
+    public String create(Project currentProject) {
+        return new FXMLFile(imports(), makeBody()).create(currentProject, objectName, objectNameController, "", false);
 
     }
 

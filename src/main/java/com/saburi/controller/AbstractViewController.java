@@ -204,7 +204,7 @@ public abstract class AbstractViewController implements Initializable {
            
                 DataAccess dBAccess = (DataAccess) tableView.getSelectionModel().getSelectedItem();
                 Object recordID = dBAccess.getModel().getId();
-                Navigation.loadEditUI(ui, title, recordID, tableView, true, false);
+                Navigation.loadEditUI(this.editNode, ui, title, recordID, tableView, true, false);
             
 
         } catch (IOException ex) {

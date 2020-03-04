@@ -35,18 +35,17 @@ public class Utilities {
         List<List> bigList = new ArrayList<>();
         try {
 
-            BufferedReader reader = new BufferedReader(new FileReader(fileName));
-            String line;
+            try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+                String line;
 
-            while ((line = reader.readLine()) != null) {
-                Vector innerList = new Vector();
-                String[] values = line.split(seperator);
+                while ((line = reader.readLine()) != null) {
+                    Vector innerList = new Vector();
+                    String[] values = line.split(seperator);
 //                display(values);
-                innerList.addAll(Arrays.asList(values));
-                bigList.add(innerList);
+                    innerList.addAll(Arrays.asList(values));
+                    bigList.add(innerList);
+                }
             }
-
-            reader.close();
         } catch (FileNotFoundException ex) {
             Logger.getLogger(Utilities.class.getName()).log(Level.SEVERE, null, ex);
             errorMessage(ex);
@@ -61,12 +60,12 @@ public class Utilities {
     public static void writeFile(String fileName, Object[] value) {
 
         try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-            for (Object s : value) {
-                writer.append(s.toString());
-                writer.newLine();
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+                for (Object s : value) {
+                    writer.append(s.toString());
+                    writer.newLine();
+                }
             }
-            writer.close();
         } catch (FileNotFoundException ex) {
             errorMessage(ex);
         } catch (IOException ex) {
@@ -78,18 +77,26 @@ public class Utilities {
     public static void writeFile(String fileName, String content) {
 
         try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
 
-            writer.write(content);
-            writer.newLine();
-
-            writer.close();
+                writer.write(content);
+                writer.newLine();
+            }
         } catch (FileNotFoundException ex) {
             errorMessage(ex);
         } catch (IOException ex) {
             errorMessage(ex);
         }
 
+    }
+    
+    public boolean fileExists(String fileName){
+        try {
+            File file = new File(fileName);
+            return file.exists();
+        } catch (Exception e) {
+            throw e;
+        }
     }
 
     public static void makeDirectory(String dir) {
@@ -131,7 +138,6 @@ public class Utilities {
         }
     }
 
-
     public static List addIfNotExists(List list, Object o) {
         if (!list.contains(o)) {
             list.add(o);
@@ -157,13 +163,13 @@ public class Utilities {
                 + "}finally{}\n"
                 + "}\n";
     }
-    
-     public static String makeTryMethod(String visibility, String returnType, String methodName, String parameters,
+
+    public static String makeTryMethod(String visibility, String returnType, String methodName, String parameters,
             String body, String exceptionType) {
 
         return visibility + " " + returnType + " " + methodName + "(" + parameters + "){\n"
                 + "try{\n " + body + ""
-                + "}catch("+exceptionType+" e){"
+                + "}catch(" + exceptionType + " e){"
                 + "errorMessage(e);"
                 + "}finally{}\n"
                 + "}\n";
@@ -297,6 +303,14 @@ public class Utilities {
             } catch (NumberFormatException e) {
                 return false;
             }
+        }
+    }
+
+    public static int getInt(String projectID) {
+        if (isInteger(projectID)) {
+            return Integer.parseInt(projectID);
+        } else {
+            return 0;
         }
     }
 

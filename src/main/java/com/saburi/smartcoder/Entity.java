@@ -6,6 +6,8 @@
 package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
+import com.saburi.dataacess.ProjectDAO;
+import com.saburi.model.Project;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
@@ -28,6 +30,7 @@ public class Entity extends CodeGenerator {
     String objectNameView;
     String primaryKeyVariableName;
     String objectVariableName;
+    private final ProjectDAO oProjectDAO =  new ProjectDAO();
 
     public Entity(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
@@ -41,14 +44,18 @@ public class Entity extends CodeGenerator {
         this.objectVariableName = Utilities.getVariableName(objectName);
     }
 
-    public String makeEntityImports() {
+    public String makeEntityImports(Project currentProject) {
+        Project commonProject = oProjectDAO.find(currentProject.getCommonProjectID());
         String imp = "import javax.persistence.Entity;\n"
                 + "import javax.persistence.Id;\n"
                 + "import org.hibernate.envers.Audited;\n"
                 + "import org.hibernate.envers.RelationTargetAuditMode;\n";
+        if (commonProject.getProjectID() != currentProject.getProjectID()) {
+            imp += "import " + oProjectDAO.find(currentProject.getCommonProjectID()).getEntityPackage() + ".DBEntity;\n";
+        }
         List<String> imports = new ArrayList();
         this.fields.forEach((t) -> {
-            t.entityImports().forEach(i -> addIfNotExists(imports, i));
+            t.entityImports(currentProject).forEach(i -> addIfNotExists(imports, i));
 
         });
         for (String impo : imports) {
@@ -183,11 +190,11 @@ public class Entity extends CodeGenerator {
 
     }
 
-    public String makeClass() throws Exception {
+    public String makeClass(Project currentProject) throws Exception {
         validate(fields);
         String constructor = new JavaClass(objectName).makeNoArgConstructor().concat("\n") + this.makeConstructor();
         String methods = otherMethods() + this.overriddenID() + this.overriddenDisplayKey();
-        JavaClass javaClass = new JavaClass("entities", objectName, this.makeEntityImports(),
+        JavaClass javaClass = new JavaClass(currentProject.getEntityPackage(), objectName, this.makeEntityImports(currentProject),
                 this.makeAnnotedFields(), constructor, this.makeProperties(), methods);
         return javaClass.makeClass("DBEntity", "@Entity\n@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)");
     }

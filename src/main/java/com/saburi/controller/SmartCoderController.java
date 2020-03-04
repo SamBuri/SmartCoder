@@ -29,11 +29,11 @@ import com.saburi.smartcoder.UIView;
 import com.saburi.utils.EditCell;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Enums.MenuTypes;
-import static com.saburi.utils.Enums.MenuTypes.Menu;
 import com.saburi.utils.Enums.RelationMappping;
 import com.saburi.utils.Enums.Saburikeys;
 import com.saburi.utils.Enums.keys;
-import static com.saburi.utils.FXUIUtils.loadModels;
+import static com.saburi.utils.FXUIUtils.loadProjects;
+import static com.saburi.utils.FXUIUtils.warningOK;
 import com.saburi.utils.Utilities;
 import java.io.BufferedReader;
 import java.io.File;
@@ -58,7 +58,6 @@ import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
-import javafx.scene.control.TablePosition;
 
 import javafx.scene.control.TableView;
 import javafx.scene.control.TextField;
@@ -123,12 +122,14 @@ public class SmartCoderController implements Initializable {
     @FXML
     private Button btnImport, btnSave;
     @FXML
-    private ComboBox cboFiles, cboProject;
+    private ComboBox cboFiles;
+    @FXML
+    private ComboBox<Project> cboProject;
     @FXML
     private ComboBox<MenuTypes> cboMenuType;
 
     @FXML
-    private CheckBox chkOpenFile, chkGenerateMenus, chkGenerateViewUI;
+    private CheckBox chkOpenFile, chkSaveToProject, chkGenerateMenus, chkGenerateViewUI;
     private final ProjectDAO oProjectDAO = new ProjectDAO();
     private final FieldDAO oFieldDAO = new FieldDAO();
 
@@ -190,7 +191,7 @@ public class SmartCoderController implements Initializable {
             cboMenuType.setItems(menuTypes);
             cboMenuType.setValue(MenuTypes.SplitButton);
             txtParentMenuID.editableProperty().bindBidirectional(chkGenerateMenus.selectedProperty());
-            loadModels(oProjectDAO.read(), cboProject);
+            loadProjects(oProjectDAO.read(), cboProject);
             initTable();
         } catch (Exception e) {
             errorMessage(e);
@@ -269,9 +270,11 @@ public class SmartCoderController implements Initializable {
 
     private void loadTable() {
         try {
+
             tblSaburiTools.setItems(FXCollections.observableList(FieldDAO.getFieldDAOs(this.readFile(txtFileName.getText(), ","))));
             addRow(tblSaburiTools, tblSaburiTools.getItems().size() - 1);
         } catch (Exception e) {
+            errorMessage(e);
         }
     }
 
@@ -289,6 +292,7 @@ public class SmartCoderController implements Initializable {
                         fields.add(field);
                     }
                 }
+
             } catch (IOException e) {
                 errorMessage(e);
             } catch (Exception e) {
@@ -440,7 +444,11 @@ public class SmartCoderController implements Initializable {
             String objectName = txtObjectName.getText();
             String objectCaption = txtObjectCaption.getText();
             String outPutDirecory = txtOutputDirectory.getText();
-
+            Project project = cboProject.getValue();
+            if (project == null) {
+                message("Please select the project!");
+                return;
+            }
             if (objectName.isBlank()) {
                 message("Must enter Object Name!");
                 return;
@@ -483,12 +491,12 @@ public class SmartCoderController implements Initializable {
             String menuFileName = menusFolder + "\\" + objectName + "Menu.txt";
             String sqlFileName = sqlFolder + "\\" + objectName + "SQLFile.txt";
 
-            String entityFileContents = new Entity(objectName, fieldDAOs).makeClass();
-            String daFileContents = new DBAcess(objectName, fieldDAOs).makeClass();
-            String controllerFileContent = new Controller(objectName, fieldDAOs).makeClass();
+            String entityFileContents = new Entity(objectName, fieldDAOs).makeClass(project);
+            String daFileContents = new DBAcess(objectName, fieldDAOs).makeClass(project);
+            String controllerFileContent = new Controller(objectName, fieldDAOs).makeClass(project);
             String vwcontrollerFileContent = new GenViewController(objectName).makeClass();
-            String fxmlFileContent = new UIEdit(objectName, fieldDAOs).create();
-            String fxmlTBFileContent = new UIView(objectName, fieldDAOs).create();
+            String fxmlFileContent = new UIEdit(objectName, fieldDAOs).create(project);
+            String fxmlTBFileContent = new UIView(objectName, fieldDAOs).create(project);
             String menuFIleContents = GenMenu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
             String sqlFileContents = SQLFile.callEditAccessObject(objectName, objectCaption);
 
@@ -560,8 +568,59 @@ public class SmartCoderController implements Initializable {
                     break;
 
             }
-
             lstPairs.addAll(Arrays.asList(pairs));
+            List<Pair<String, String>> projectFiles = new ArrayList<>();
+            if (chkSaveToProject.isSelected()) {
+
+                String entityFileNameProj = project.getEntityFolder() + "\\" + objectName + ".java";
+                String daFileNameProj = project.getDBAcessFolder() + "\\" + daObjectName + ".java";
+                String fxmlFileNameProj = project.getResourceFolder() + "\\" + objectName + ".fxml";
+                String controllerFileNameProj = project.getControllerFolder() + "\\" + objectName + "Controller.java";
+
+                Pair<String, String> fxlPairProj = new Pair(fxmlFileNameProj, fxmlFileContent);
+                Pair<String, String> controllerPairProj = new Pair(controllerFileNameProj, controllerFileContent);
+                Pair<String, String> daFilePairProj = new Pair(daFileNameProj, daFileContents);
+                Pair<String, String> entityPairProj = new Pair(entityFileNameProj, entityFileContents);
+                switch (toGenerateFile) {
+                    case "Entity":
+                        pairs = new Pair[]{entityPairProj};
+                        break;
+                    case "DBAcess":
+                        pairs = new Pair[]{daFilePairProj};
+                        break;
+                    case "Controller":
+                        pairs = new Pair[]{controllerPairProj};
+                        break;
+
+                    case "FXML":
+                        pairs = new Pair[]{fxlPairProj};
+                        break;
+
+                    default:
+                        pairs = new Pair[]{entityPairProj, daFilePairProj, controllerPairProj, fxlPairProj};
+
+                        break;
+
+                }
+                projectFiles.addAll(Arrays.asList(pairs));
+                projectFiles.forEach(a -> {
+                    String fileName = a.getKey();
+                    File file = new File(fileName);
+                    if (file.exists()) {
+                        if (warningOK("File Exists", "The file with name " + file.getName() + " already exists.\n"
+                                + "Do you want to replace it?")) {
+                            if (warningOK("Confirm Replace",
+                                    "Replacing this file may lead to potential loss of the code you previously wrote\n"
+                                    + "Are you sure you want to continue?")) {
+                                writeFile(fileName, a.getValue());
+                            }
+                        }
+                    } else {
+                        writeFile(fileName, a.getValue());
+                    }
+                });
+            }
+
             lstPairs.forEach(a -> writeFile(a.getKey(), a.getValue()));
 
             if (!chkOpenFile.isSelected()) {
@@ -581,7 +640,7 @@ public class SmartCoderController implements Initializable {
 
         List<FieldDAO> fieldDAOs = tableView.getItems();
         int size = fieldDAOs.size();
-        
+
         if (size == 0) {
             tableView.getItems().add(new FieldDAO());
         } else {

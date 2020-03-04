@@ -5,6 +5,7 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.utils.FXUIUtils;
 import static com.saburi.utils.FXUIUtils.errorMessage;
 import static com.saburi.utils.Navigation.loadEditUi;
 import static com.saburi.utils.Navigation.loadFXML;
@@ -14,10 +15,15 @@ import com.saburi.utils.SearchTree;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
+import javafx.collections.ObservableSet;
+import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.print.Printer;
+import javafx.print.PrinterJob;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
+import javafx.scene.control.Label;
 import javafx.scene.control.MenuItem;
 import javafx.scene.layout.StackPane;
 
@@ -27,13 +33,15 @@ import javafx.scene.layout.StackPane;
  * @author ClinicMaster13
  */
 public class SceneController implements Initializable {
-
+    
     @FXML
     private StackPane stpMain;
     @FXML
-    Button btnGenerate;
+    Button btnPrint;
     @FXML
-    private MenuItem mniSetting, mniProject, mniView;
+    private MenuItem mniSetting, mniProject, mniView, spmProjectAdd, spmProjectView;
+    @FXML
+    private Label lblStatusBar;
 
     /**
      * Initializes the controller class.
@@ -46,16 +54,40 @@ public class SceneController implements Initializable {
         try {
             Parent root = loadFXML("SmartCoder");
             stpMain.getChildren().add(root);
-
-            loadUI(mniSetting, "Settings", false);
-            loadEditUi(mniProject, "Project", "Project", false);
+            
+            loadUI(stpMain, mniSetting, "Settings", false);
+            loadEditUi(stpMain, spmProjectAdd, "Project", "Project", false);
             loadSearchEngine(mniView, new SearchTree().getTreeItems(), false);
+            btnPrint.setOnAction((ActionEvent e) -> {
+//                ObservableSet<Printer> printers = Printer.getAllPrinters();
+//                printers.forEach((printer) -> {
+//                    FXUIUtils.message(printer.getName());
+//                });
+
+//                Printer printer = Printer.getDefaultPrinter();
+//                if (printer != null) {
+//                    FXUIUtils.message(printer.getName());
+//                }
+                lblStatusBar.textProperty().unbind();
+                PrinterJob printerJob = PrinterJob.createPrinterJob();
+                if (printerJob != null) {
+                    lblStatusBar.textProperty().bind(printerJob.jobStatusProperty().asString());
+                    if (printerJob.showPageSetupDialog(btnPrint.getScene().getWindow())) {
+                        if (printerJob.printPage(root)) {
+                            printerJob.endJob();
+                        } else {
+                            lblStatusBar.textProperty().unbind();
+                        }
+                    }
+                } else {
+                    FXUIUtils.message("Error creating a print job");
+                }
+            });
 
 //            stpMain.getScene().getWindow().setOnCloseRequest(e -> System.exit(0));
-
         } catch (IOException e) {
             errorMessage(e);
         }
     }
-
+    
 }

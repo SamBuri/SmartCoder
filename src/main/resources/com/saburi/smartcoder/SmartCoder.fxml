@@ -61,6 +61,7 @@
             <Label text="Generation Options" /> 
             <ComboBox fx:id="cboFiles" prefWidth="130.0" promptText="Select File" />
             <CheckBox fx:id="chkOpenFile" mnemonicParsing="false" text="Auto Open File(s)" />
+            <CheckBox fx:id="chkSaveToProject" mnemonicParsing="false" text="Save To Project" />
             <CheckBox fx:id="chkGenerateMenus" text="Generate Menus" />
             <CheckBox fx:id="chkGenerateViewUI" text="Generate View UI" />
             <ComboBox fx:id="cboMenuType" prefWidth="130.0" promptText="Select Type" />

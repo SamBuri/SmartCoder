@@ -6,7 +6,8 @@
 package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.model.Field;
+import com.saburi.dataacess.ProjectDAO;
+import com.saburi.model.Project;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
 import static com.saburi.utils.Utilities.makeMethod;
@@ -33,6 +34,7 @@ public class DBAcess extends CodeGenerator {
     private final String objectNameDAVariableName;
     private final String superClass = "DBAccess";
     private final FilteredList<FieldDAO> collectionList;
+    private final ProjectDAO oProjectDAO = new ProjectDAO();
 
     public DBAcess(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
@@ -68,18 +70,22 @@ public class DBAcess extends CodeGenerator {
         return objectNameDA;
     }
 
-    public String makeImports() {
-        String imp = "import entities." + objectName + ";"
+    public String makeImports(Project currentProject) {
+        Project commonProject = oProjectDAO.find(currentProject.getCommonProjectID());
+        String imp = "import " + currentProject.getEntityPackage() + "." + objectName + ";"
                 + "import javafx.beans.property.*;\n"
                 + "import java.util.ArrayList;\n"
-                + "import entities.AppRevisionEntity;\n"
+                + "import " + commonProject.getEntityPackage() + ".AppRevisionEntity;\n"
                 + "import java.util.List;\n"
-                + "import utils.SearchColumn;\n"
-                + "import utils.SearchColumn.SearchDataTypes;\n"
+                + "import " + commonProject.getUtilPackage() + ".SearchColumn;\n"
+                + "import " + commonProject.getUtilPackage() + ".SearchColumn.SearchDataTypes;\n"
                 + "import org.hibernate.envers.RevisionType;\n";
+        if (commonProject.getProjectID() != currentProject.getProjectID()) {
+            imp += "import " + oProjectDAO.find(currentProject.getCommonProjectID()).getDBAccessPackage() + ".DBAccess;\n";
+        }
         List<String> imports = new ArrayList();
         fields.forEach((t) -> {
-            t.daImports().forEach(i -> addIfNotExists(imports, i));
+            t.daImports(currentProject).forEach(i -> addIfNotExists(imports, i));
 
         });
         for (String impo : imports) {
@@ -151,15 +157,14 @@ public class DBAcess extends CodeGenerator {
 //                }
 //            } else {
 
-                if (i == 0) {
-                    construtorLine += field.getDeclaration(true, false);
+            if (i == 0) {
+                construtorLine += field.getDeclaration(true, false);
 
-                } else {
-                    construtorLine += ", " + field.getDeclaration(true, false);
-                }
+            } else {
+                construtorLine += ", " + field.getDeclaration(true, false);
+            }
 
 //            }
-
         }
 
         String makeInitials = "";
@@ -266,7 +271,7 @@ public class DBAcess extends CodeGenerator {
             String idGeneratorVariableName = idGeneratorObject.getVariableName();
             String idHelperVariableName = idHelperObject.getVariableName();
             if (idGeneratorObject.isReferance() && !idGeneratorObject.getEnumerated()) {
-                return "public final int getNext" + idHelperObject.getFieldName() + "(" + idGeneratorObject.getReferences()+ " " + idGeneratorVariableName + ") {\n"
+                return "public final int getNext" + idHelperObject.getFieldName() + "(" + idGeneratorObject.getReferences() + " " + idGeneratorVariableName + ") {\n"
                         + "        return this.getMax(\"" + idHelperVariableName + "\",\"" + idGeneratorVariableName + "\", " + idGeneratorVariableName + ")+1;\n"
                         + "    }\n";
             } else {
@@ -363,8 +368,8 @@ public class DBAcess extends CodeGenerator {
                     + "        return " + objectVariableName + ".getId().hashCode();\n"
                     + "            }";
 
-            String objectNameGet = "public "+objectName+" get"+objectName+"(){\n"
-                    + "        return this."+objectVariableName+";\n"
+            String objectNameGet = "public " + objectName + " get" + objectName + "(){\n"
+                    + "        return this." + objectVariableName + ";\n"
                     + "    }";
 
             String dagetSearchColumns = " @Override\n"
@@ -496,7 +501,7 @@ public class DBAcess extends CodeGenerator {
 
             String daNextIDHelper = getNextIDHelper();
             String daNextPrimaryKey = getNextIDColumn();
-            return equals + hashCode + initialiseProperties() + makeSearchColumn() + dagetSearchColumns + getID + getDisplayKey + dConvert + mConvert + daSave + daUpdate + daDelete + getObjectName + objectNameGet+ dagetAllObject + dagetAll
+            return equals + hashCode + initialiseProperties() + makeSearchColumn() + dagetSearchColumns + getID + getDisplayKey + dConvert + mConvert + daSave + daUpdate + daDelete + getObjectName + objectNameGet + dagetAllObject + dagetAll
                     + daget + daGetValue + todaList + toDBAccesList + daMax + daMax1 + daNextIDHelper + daNextPrimaryKey + getByColName + revisions + "\n";
         } catch (Exception ex) {
             Logger.getLogger(DBAcess.class.getName()).log(Level.SEVERE, null, ex);
@@ -505,9 +510,9 @@ public class DBAcess extends CodeGenerator {
 
     }
 
-    public String makeClass() throws Exception {
+    public String makeClass(Project currentProject) throws Exception {
         validate(fields);
-        JavaClass javaClass = new JavaClass("dbaccess", objectNameDA, this.makeImports(),
+        JavaClass javaClass = new JavaClass(currentProject.getDBAccessPackage(), objectNameDA, this.makeImports(currentProject),
                 this.makeProperties(), this.makeConstructor(), this.makeDAProperties(), makeMethods());
         return javaClass.makeClass("DBAccess");
     }

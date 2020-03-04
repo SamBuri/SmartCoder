@@ -6,7 +6,8 @@
 package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.model.Field;
+import com.saburi.dataacess.ProjectDAO;
+import com.saburi.model.Project;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
 import java.util.ArrayList;
@@ -32,6 +33,7 @@ public class Controller {
     private final String daVariableName;
     private final FieldDAO primaryKey;
     FilteredList<FieldDAO> subListFields;
+    private final ProjectDAO oProjectDAO = new ProjectDAO();
 
     public Controller(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
@@ -46,20 +48,23 @@ public class Controller {
         subListFields.setPredicate(FieldPredicates.hasSubFields());
     }
 
-    private String imports() {
-
+    private String imports(Project currentProject) {
+        Project commonProject = oProjectDAO.find(currentProject.getCommonProjectID());
         String imp = "import java.net.URL;\n"
                 + "import java.util.ResourceBundle;\n"
                 + "import javafx.fxml.FXML;\n"
-                + "import static utils.FXUIUtils.*;\n"
-                + "import utils.Utilities.FormMode;\n"
-                + "import static utils.FXUIUtils.warningOk;\n"
-                + "import dbaccess." + objectNameDA + ";\n";
+                + "import static " + commonProject.getUtilPackage() + ".FXUIUtils.*;\n"
+                + "import " + commonProject.getUtilPackage() + ".Utilities.FormMode;\n"
+                + "import static " + commonProject.getUtilPackage() + ".FXUIUtils.warningOk;\n"
+                + "import " + currentProject.getDBAccessPackage() + "." + objectNameDA + ";\n";
+        if (commonProject.getProjectID() != currentProject.getProjectID()) {
+            imp += "import " + oProjectDAO.find(currentProject.getCommonProjectID()).getContollerPackage() + ".EditController;\n";
+        }
 
         List<String> imports = new ArrayList();
         this.fields.forEach((t) -> {
             try {
-                t.ControllerImports(this.objectName).forEach(i -> addIfNotExists(imports, i));
+                t.ControllerImports(this.objectName, currentProject).forEach(i -> addIfNotExists(imports, i));
             } catch (Exception ex) {
                 Logger.getLogger(Controller.class.getName()).log(Level.SEVERE, null, ex);
             }
@@ -122,29 +127,17 @@ public class Controller {
     }
 
     public String setControlIDInInitialiser() {
-        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
+       
         FieldDAO IDHelperObject = Utilities.getIDHelper(fields);
         if (IDHelperObject == null) {
             return "";
         }
-        if (idGeneratorObject == null) {
+        else {
             return "this.setNext" + primaryKey.getFieldName() + "();\n";
-        } else {
-
-            if (idGeneratorObject.isReferance()) {
-                return "cbo" + idGeneratorObject.getFieldName() + ".setOnAction(e -> this.setNext" + primaryKey.getFieldName() + "());";
-            } else {
-                return idGeneratorObject.getControlName() + ".focusedProperty().addListener((observable, oldValue, newValue) -> {\n"
-                        + "                if(oldValue){\n"
-                        + "                    this.setNext" + primaryKey.getFieldName() + "();\n"
-                        + "                }\n"
-                        + "            });\n";
-            }
-
-        }
+        } 
     }
 
-    private String initMethod() throws Exception {
+    private String initMethod(Project currentProject) throws Exception {
         String initProperties = "this.primaryKeyControl = " + primaryKey.getControlName() + ";\n"
                 + "          this.dbAccess = " + daGlobalVariable + ";\n"
                 + "          this.restrainColumnConstraint = false;\n"
@@ -157,6 +150,12 @@ public class Controller {
         String editableTable = "";
         String menuLoadCalls = "";
         for (FieldDAO field : fields) {
+            Project project;
+            if (field.getProjectID().isBlank()) {
+                project = currentProject;
+            } else {
+                project = field.getProject();
+            }
 
             if (field.isReferance() && !field.isCollection()) {
 
@@ -165,16 +164,11 @@ public class Controller {
                 } else {
 
                     if (field.getReferences().equalsIgnoreCase("LookupData")) {
-                        if (field.getProjectID().equalsIgnoreCase("CommonEnums")) {
-                            lookupDataLoadings += " loadLookupData(" + field.getControlName() + ", CommonObjectNames." + field.getFieldName().toUpperCase() + ");\n";
-                            menuLoadCalls += "selectLookupData(cmiSelect" + field.getFieldName() + ", CommonObjectNames." + field.getFieldName().toUpperCase() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", false);";
-                        } else {
-                            lookupDataLoadings += " loadLookupData(" + field.getControlName() + ", ObjectNames." + field.getFieldName().toUpperCase() + ");\n";
-                            menuLoadCalls += "selectLookupData(cmiSelect" + field.getFieldName() + ", ObjectNames." + field.getFieldName().toUpperCase() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\",  " + field.getControlName() + ", false);";
-                        }
+                       lookupDataLoadings += " loadLookupData("+ field.getControlName() + ", "+project.getObjectNameClass()+"." + field.getFieldName().toUpperCase() + ");\n";
+                            menuLoadCalls += "selectLookupData("+project.getNavigationClass()+".MAIN_CLASS, cmiSelect" + field.getFieldName() + ", "+project.getObjectNameClass()+"." + field.getFieldName().toUpperCase() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", false);";
                     } else {
                         comboLoadings += "loadDBEntities(o" + field.getReferencesDA() + ".get" + field.getFieldName() + "s(), " + field.getControlName() + ");\n";
-                        menuLoadCalls += "selectItem(cmiSelect" + field.getFieldName() + ", o" + field.getReferencesDA() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", true);";
+                        menuLoadCalls += "selectItem("+project.getNavigationClass()+".MAIN_CLASS, cmiSelect" + field.getFieldName() + ", o" + field.getReferencesDA() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", true);";
 
                     }
 
@@ -257,7 +251,7 @@ public class Controller {
                 + "if (buttonText.equalsIgnoreCase(FormMode.Save.name())) {\n"
                 + "                " + daVariableName + ".save();\n"
                 + "                message(\"Saved Successfully\");\n"
-                + "                clear();\n"
+                + "                clear();\n"+afterClearing()
                 + "            } else if (buttonText.equalsIgnoreCase(FormMode.Update.name())) {\n"
                 + "                " + daVariableName + ".update();\n"
                 + "                message(\"Updated Successfully\");\n"
@@ -297,13 +291,13 @@ public class Controller {
 
     }
 
-    private String clear() {
-        String clear = "";
+    private String afterClearing() {
+        String afterClearing = "";
         for (FieldDAO field : fields) {
-            clear += field.clearLine();
+            afterClearing += field.afterClearing();
         }
-        clear += setControlIDInInitialiser();
-        return Utilities.makeMethod("private", "void", "clear", "", clear);
+        afterClearing += setControlIDInInitialiser();
+        return afterClearing;
     }
 
     private String getSetIDControl() throws Exception {
@@ -373,7 +367,7 @@ public class Controller {
 
     }
 
-    private String methods() throws Exception {
+    private String methods(Project currentProject) throws Exception {
 
         String cDelete = "@Override\nprotected void delete(){\n"
                 + "        try {\n"
@@ -382,7 +376,6 @@ public class Controller {
                 + " if(!warningOk(\"Confirm Delete\", \"You are about to delete a record with ID: \"+" + primaryKeyVariableName + "+\" Are you sure you want to continue?\", \"Remember this action cannot be un done\"))return;\n"
                 + "            if(" + daVariableName + ".delete()){\n"
                 + "                message(\"Deleted Successfully\");\n"
-                + "                this.clear();\n"
                 + "            }\n"
                 + "        } catch (Exception e) {\n"
                 + "            errorMessage(e);\n"
@@ -400,13 +393,13 @@ public class Controller {
 
         String loadMethods = "";
         loadMethods = subListFields.stream().map((field) -> field.makeLoadCollections()).reduce(loadMethods, String::concat);
-        return initMethod() + save() + cDelete + loadData() + getSetIDControl() + editColumn + loadMethods + clear();
+        return initMethod(currentProject) + save() + cDelete + loadData() + getSetIDControl() + editColumn + loadMethods;
 
     }
 
-    public String makeClass() throws Exception {
-        JavaClass javaClass = new JavaClass("controllers", objectNameController, this.imports(),
-                this.annotedControllers(), "", "", methods());
+    public String makeClass(Project currentProject) throws Exception {
+        JavaClass javaClass = new JavaClass(currentProject.getContollerPackage(), objectNameController, this.imports(currentProject),
+                this.annotedControllers(), "", "", methods(currentProject));
         return javaClass.makeClass("EditController");
     }
 

@@ -1,24 +1,42 @@
 [
   {
-    "projectID": 1,
-    "projectName": "Commom",
-    "commonProjectID": 1,
-    "baseDir": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src",
-    "entityPackage": "com.saburi.common.entities",
-    "dbAccessPackage": "com.saburi.common.dbaccess",
-    "controllerPackage": "com.saburi.common.controllers",
-    "utilPackage": "com.saburi.common.utils",
-    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\resources\\com\\saburi\\common\\main"
-  },
-  {
     "projectID": 2,
     "projectName": "Schoolsoft",
     "commonProjectID": 1,
-    "baseDir": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft",
     "entityPackage": "com.saburi.schoolsoft.entities",
-    "dbAccessPackage": "com.saburi.schoolsoft.dbaccess",
-    "controllerPackage": "com.saburi.schoolsoft.controllers",
+    "dBAccessPackage": "com.saburi.schoolsoft.dbaccesses",
+    "contollerPackage": "com.saburi.schoolsoft.controllers",
     "utilPackage": "com.saburi.schoolsoft.utils",
-    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\resources\\com\\saburi\\schoolsoft\\main"
+    "enumClass": "Enum",
+    "objectNameClass": "ObjectNames",
+    "navigationClass": null,
+    "entityFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\java\\com\\saburi\\schoolsoft\\entities",
+    "dBAcessFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\java\\com\\saburi\\schoolsoft\\dbaccesses",
+    "controllerFolder": null,
+    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\resources\\com\\saburi\\schoolsoft\\main",
+    "menuControllerFile": null,
+    "searchTreeFile": null,
+    "menuUIFile": null,
+    "sQLFile": null
+  },
+  {
+    "projectID": 1,
+    "projectName": "Commom",
+    "commonProjectID": 1,
+    "entityPackage": "com.saburi.common.entities",
+    "dBAccessPackage": "com.saburi.common.dbaccess",
+    "contollerPackage": "com.saburi.common.controllers",
+    "utilPackage": "com.saburi.common.utils",
+    "enumClass": "CommonEnums",
+    "objectNameClass": "CommonObjectNames",
+    "navigationClass": "CommonNavigate",
+    "entityFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\java\\com\\saburi\\common\\entities",
+    "dBAcessFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\java\\com\\saburi\\common\\dbaccess",
+    "controllerFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\java\\com\\saburi\\common\\controllers",
+    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\resources\\com\\saburi\\common\\main",
+    "menuControllerFile": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\java\\com\\saburi\\common\\controllers\\ParentSceneController.java",
+    "searchTreeFile": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\java\\com\\saburi\\common\\utils\\CommonSearchTree.java",
+    "menuUIFile": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\resources\\com\\saburi\\common\\main\\MainScene.css",
+    "sQLFile": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\Scripts\\InsertDefaultData.sql"
   }
 ]

@@ -6,6 +6,7 @@
 package com.saburi.dataacess;
 
 import com.saburi.model.Field;
+import com.saburi.model.Project;
 import com.saburi.utils.Enums.FXControls;
 import com.saburi.utils.Enums.Saburikeys;
 import com.saburi.utils.Enums.keys;
@@ -41,6 +42,9 @@ public class FieldDAO {
     private String referencesVariableID;
     private String displayVariableName;
     private final String displayDataType = "String";
+    ProjectDAO oProjectDAO = new ProjectDAO();
+    private Project project;
+    private Project commonProject;
 
     public FieldDAO() {
     }
@@ -68,9 +72,11 @@ public class FieldDAO {
         this.display = this.fieldName.get().concat("Display");
         this.referencesVariableID = Utilities.getVariableName(referencesID);
         this.displayVariableName = Utilities.getVariableName(display);
+        this.project = oProjectDAO.find(field.getProjectID());
+
     }
-    
-      @Override
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -223,6 +229,14 @@ public class FieldDAO {
 
     public String getDisplayDataType() {
         return displayDataType;
+    }
+
+    public Project getProject() {
+        return project;
+    }
+
+    public Project getCommonProject() {
+        return commonProject;
     }
 
     public String getColumnName(String custom) {
@@ -593,8 +607,12 @@ public class FieldDAO {
         return fieldAnnotation;
     }
 
-    public List entityImports() {
+    public List entityImports(Project currentProject) {
         List list = new ArrayList();
+        if (getProjectID().isBlank()) {
+            project = currentProject;
+        }
+        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
         if (isCollection()) {
             addIfNotExists(list, "import java.util." + getDataType());
             addIfNotExists(list, "import javax.persistence.CascadeType");
@@ -614,11 +632,7 @@ public class FieldDAO {
                 addIfNotExists(list, "import javax.validation.constraints.NotNull");
             }
             if (enumerated.get()) {
-                if (getProjectID().isBlank()) {
-                    addIfNotExists(list, "import utils.CommonEnums." + references.get());
-                } else {
-                    addIfNotExists(list, "import utils." + getProjectID() + "." + references.get());
-                }
+                addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
                 addIfNotExists(list, "import javax.persistence.Enumerated");
 
             } else {
@@ -634,6 +648,10 @@ public class FieldDAO {
                 addIfNotExists(list, "import javax.persistence.JoinColumn");
                 addIfNotExists(list, "import javax.persistence.ForeignKey");
                 addIfNotExists(list, "import javax.persistence." + mapping.get());
+
+                if (project.getProjectID() != currentProject.getProjectID()) {
+                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                }
 
             }
         } else if (dataType.get().equalsIgnoreCase("String")) {
@@ -664,50 +682,47 @@ public class FieldDAO {
         return list;
     }
 
-    public List daImports() {
+    public List daImports(Project currentProject) {
         List list = new ArrayList();
+        if (getProjectID().isBlank()) {
+            project = currentProject;
+        }
+        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
         if (isCollection()) {
             if (isReferance()) {
                 if (enumerated.get()) {
-                    if (getProjectID().isBlank()) {
-                        addIfNotExists(list, "import utils.CommonEnums." + references.get());
-                    } else {
-                        addIfNotExists(list, "import utils." + getProjectID() + "." + references.get());
-                    }
-
+                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + currentProject.getEnumClass() + "." + references.get());
                 } else {
+                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
 
-                    addIfNotExists(list, "import entities." + references.get());
                 }
             }
             if (getDataType().equalsIgnoreCase("Set")) {
                 addIfNotExists(list, "import java.util.HashSet");
             }
         } else if (isReferance()) {
-            if (enumerated.get()) {
-                if (getProjectID().isBlank()) {
-                    addIfNotExists(list, "import utils.CommonEnums." + references.get());
+            if (isReferance()) {
+                if (enumerated.get()) {
+
+                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + currentProject.getEnumClass() + "." + references.get());
+
                 } else {
-                    addIfNotExists(list, "import utils." + getProjectID() + "." + references.get());
+                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
                 }
-
-            } else {
-
-                addIfNotExists(list, "import entities." + references.get());
             }
         } else if (dataType.get().equalsIgnoreCase("LocalDate")) {
             addIfNotExists(list, "import java.time.LocalDate");
-            addIfNotExists(list, "import static utils.Utilities.formatDate");
+            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatDate");
         } else if (dataType.get().equalsIgnoreCase("LocalDateTime")) {
             addIfNotExists(list, "import java.time.LocalDateTime");
-            addIfNotExists(list, "import static utils.Utilities.formatDateTime");
+            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatDateTime");
 
         } else if (dataType.get().equalsIgnoreCase("double") || dataType.get().equalsIgnoreCase("float")) {
-            addIfNotExists(list, "import static utils.Utilities.formatNumber");
+            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatNumber");
 
         } else if (dataType.get().equalsIgnoreCase("Image")) {
             addIfNotExists(list, "import javafx.scene.image.ImageView");
-            addIfNotExists(list, "import utils.FXUIUtils");
+            addIfNotExists(list, "import " + commonProject.getUtilPackage() + ".FXUIUtils");
 
         }
 
@@ -856,34 +871,38 @@ public class FieldDAO {
         }
         return subFieldList;
     }
-    
-   public List<FieldDAO> getSubFieldListDAO() throws Exception{
-       return getFieldDAOs(getSubFieldList());
-   }
 
-    public List ControllerImports(String objectName) throws Exception {
+    public List<FieldDAO> getSubFieldListDAO() throws Exception {
+        return getFieldDAOs(getSubFieldList());
+    }
+
+    public List ControllerImports(String objectName, Project currentProject) throws Exception {
         String controlLiberay = getControlLibary();
 
+        if (getProjectID().isBlank()) {
+            project = currentProject;
+        }
+        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
         List list = new ArrayList();
         addIfNotExists(list, controlLiberay.concat(this.getControlType().name()));
         if (isCollection()) {
             addIfNotExists(list, "import java.util." + getDataType());
-            addIfNotExists(list, "import dbaccess." + getReferencesDA());
+            addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
             addIfNotExists(list, "import javafx.collections.FXCollections");
             if (makeEditableTable()) {
-                addIfNotExists(list, "import entities." + objectName);
+                addIfNotExists(list, "import " + project.getEntityPackage() + "." + objectName);
                 addIfNotExists(list, "import javafx.scene.control.MenuItem");
                 addIfNotExists(list, "import javafx.scene.control.TableColumn");
                 addIfNotExists(list, "import javafx.scene.control.TablePosition");
                 addIfNotExists(list, "import javafx.collections.ObservableList");
-                addIfNotExists(list, "import utils.EditCell");
+                addIfNotExists(list, "import " + commonProject.getUtilPackage() + ".EditCell");
                 try {
                     this.getSubFieldListDAO().forEach(d -> {
                         if ((d.getDataType().equalsIgnoreCase("float") || d.getDataType().equalsIgnoreCase("double"))) {
-                            addIfNotExists(list, "import static utils.Utilities.defortNumberOptional");
+                            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.defortNumberOptional");
                         }
                         if (d.isReferance() && !getEnumerated()) {
-                            addIfNotExists(list, "import entities." + d.getReferences());
+                            addIfNotExists(list, "import " + project.getEntityPackage() + "." + d.getReferences());
                             addIfNotExists(list, "import javafx.application.Platform");
                         }
                     });
@@ -893,32 +912,27 @@ public class FieldDAO {
             }
         } else if (isReferance()) {
             if (enumerated.get()) {
-                if (getProjectID().isBlank()) {
-                    addIfNotExists(list, "import utils.CommonEnums." + references.get());
-                } else {
-                    addIfNotExists(list, "import utils." + getProjectID() + "." + references.get());
-                }
+
+                addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
+
                 addIfNotExists(list, "import javafx.collections.FXCollections");
 
             } else {
                 addIfNotExists(list, "import javafx.scene.control.MenuItem");
-                addIfNotExists(list, "import dbaccess." + getReferencesDA());
-                addIfNotExists(list, "import  entities." + getReferences());
+                addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
+                addIfNotExists(list, "import  " + project.getEntityPackage() + "." + getReferences());
+                 addIfNotExists(list, "import  " + project.getUtilPackage()+ "." + project.getNavigationClass());
                 if (references.get().equalsIgnoreCase("LookupData")) {
-                    if (getProjectID().equalsIgnoreCase("CommonEnums")) {
-                        addIfNotExists(list, "import utils.CommonObjectNames");
-                    } else {
-                        addIfNotExists(list, "import utils.ObjectNames");
-                    }
+                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getObjectNameClass());
                 }
 
             }
         } else if (dataType.get().equalsIgnoreCase("LocalDate")) {
-            addIfNotExists(list, "import java.time.LocalDate;");
+            addIfNotExists(list, "import java.time.LocalDate");
         } else if (dataType.get().equalsIgnoreCase("LocalDateTime")) {
             addIfNotExists(list, "import java.time.LocalDateTime");
         } else if (dataType.get().equalsIgnoreCase("float") || dataType.get().equalsIgnoreCase("double")) {
-            addIfNotExists(list, "import static utils.Utilities.formatNumber");
+            addIfNotExists(list, "import static " + project.getUtilPackage() + ".Utilities.formatNumber");
         } else if (dataType.get().equalsIgnoreCase("Image")) {
             addIfNotExists(list, "import javafx.scene.control.Button");
         }
@@ -926,7 +940,7 @@ public class FieldDAO {
 //        ***********************************************************************************************
         if (getSaburiKey().equalsIgnoreCase(Saburikeys.ID_Generator.name())) {
             if (isReferance() && !getEnumerated()) {
-                addIfNotExists(list, "import dbaccess." + getReferencesDA());
+                addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
             }
         }
         return list;
@@ -1121,24 +1135,17 @@ public class FieldDAO {
         }
     }
 
-    public String clearLine() {
+    public String afterClearing() {
         if (isHelper()) {
             return "";
         }
         switch (getControlType()) {
-            case ComboBox:
-            case DatePicker:
-                return getControlName() + ".setValue(null);\n";
-            case ImageView:
-                return getControlName() + ".setImage(null);\n";
-
-            case CheckBox:
-                return getControlName() + ".setSelected(false);\n";
+            
             case TableView:
 
-                return getControlName() + ".getItems().clear();\n" + "addRow(" + getControlName() + ", new " + getReferencesDA() + "());\n";
+                return "addRow(" + getControlName() + ", new " + getReferencesDA() + "());\n";
             default:
-                return getControlName() + ".clear();\n";
+                return  "";
         }
     }
 

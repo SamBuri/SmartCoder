@@ -6,7 +6,7 @@
 package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.model.Field;
+import com.saburi.model.Project;
 import com.saburi.model.Settings;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
@@ -78,18 +78,18 @@ public class UIEdit {
             endValue = settings.getMiniLineBreak();
         }
         int size = fields.size();
-        int x = 0;
-        int y = 0;
+        int rowIndex = 0;
+        int columnIndex = 0;
         for (int i = 0; i < size; i++) {
 
             FieldDAO field = fields.get(i);
 
             if (!(field.isHelper() || field.isCollection())) {
-                body += field.makeUIFXMLEditLine(objectName, x, y);
-                x++;
-                if (x == endValue) {
-                    x = 0;
-                    y += 2;
+                body += field.makeUIFXMLEditLine(objectName, rowIndex, columnIndex);
+                rowIndex++;
+                if (rowIndex == endValue) {
+                    rowIndex = 0;
+                    columnIndex += 2;
                 }
             }
 
@@ -150,8 +150,8 @@ public class UIEdit {
         return body;
     }
 
-    public String create() throws Exception {
-        return new FXMLFile(imports(), makeBody()).create(objectName, objectNameController, listComtrols(), true);
+    public String create(Project currentProject) throws Exception {
+        return new FXMLFile(imports(), makeBody()).create(currentProject, objectName, objectNameController, listComtrols(), true);
 
     }
 

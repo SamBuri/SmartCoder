@@ -16,31 +16,26 @@ public class Project extends Model {
     private int projectID;
     private String projectName;
     private int commonProjectID;
-
     private String entityPackage;
-
     private String dBAccessPackage;
-
     private String contollerPackage;
-
     private String utilPackage;
-
     private String enumClass;
-
     private String objectNameClass;
-
+    private String navigationClass;
     private String entityFolder;
-
     private String dBAcessFolder;
-
-    private String controllerFolde;
-
+    private String controllerFolder;
     private String resourceFolder;
+    private String menuControllerFile;
+    private String searchTreeFile;
+    private String menuUIFile;
+    private String sQLFile;
 
     public Project() {
     }
 
-    public Project(int projectID, String projectName, int commonProjectID, String entityPackage, String dBAccessPackage, String contollerPackage, String utilPackage, String enumClass, String objectNameClass, String entityFolder, String dBAcessFolder, String controllerFolde, String resourceFolder) {
+    public Project(int projectID, String projectName, int commonProjectID, String entityPackage, String dBAccessPackage, String contollerPackage, String utilPackage, String enumClass, String objectNameClass, String navigationClass, String entityFolder, String dBAcessFolder, String controllerFolder, String resourceFolder, String menuControllerFile, String searchTreeFile, String menuUIFile, String sQLFile) {
         this.projectID = projectID;
         this.projectName = projectName;
         this.commonProjectID = commonProjectID;
@@ -50,10 +45,15 @@ public class Project extends Model {
         this.utilPackage = utilPackage;
         this.enumClass = enumClass;
         this.objectNameClass = objectNameClass;
+        this.navigationClass = navigationClass;
         this.entityFolder = entityFolder;
         this.dBAcessFolder = dBAcessFolder;
-        this.controllerFolde = controllerFolde;
+        this.controllerFolder = controllerFolder;
         this.resourceFolder = resourceFolder;
+        this.menuControllerFile = menuControllerFile;
+        this.searchTreeFile = searchTreeFile;
+        this.menuUIFile = menuUIFile;
+        this.sQLFile = sQLFile;
 
     }
 
@@ -129,6 +129,14 @@ public class Project extends Model {
         this.objectNameClass = objectNameClass;
     }
 
+    public String getNavigationClass() {
+        return navigationClass;
+    }
+
+    public void setNavigationClass(String navigationClass) {
+        this.navigationClass = navigationClass;
+    }
+
     public String getEntityFolder() {
         return entityFolder;
     }
@@ -145,13 +153,47 @@ public class Project extends Model {
         this.dBAcessFolder = dBAcessFolder;
     }
 
-    public String getControllerFolde() {
-        return controllerFolde;
+    public String getControllerFolder() {
+        return controllerFolder;
     }
 
-    public void setControllerFolde(String controllerFolde) {
-        this.controllerFolde = controllerFolde;
+    public void setControllerFolder(String controllerFolder) {
+        this.controllerFolder = controllerFolder;
     }
+
+    public String getMenuControllerFile() {
+        return menuControllerFile;
+    }
+
+    public void setMenuControllerFile(String menuControllerFile) {
+        this.menuControllerFile = menuControllerFile;
+    }
+
+    public String getSearchTreeFile() {
+        return searchTreeFile;
+    }
+
+    public void setSearchTreeFile(String searchTreeFile) {
+        this.searchTreeFile = searchTreeFile;
+    }
+
+    public String getMenuUIFile() {
+        return menuUIFile;
+    }
+
+    public void setMenuUIFile(String menuUIFile) {
+        this.menuUIFile = menuUIFile;
+    }
+
+    public String getSQLFile() {
+        return sQLFile;
+    }
+
+    public void setSQLFile(String sQLFile) {
+        this.sQLFile = sQLFile;
+    }
+
+    
 
     public String getResourceFolder() {
         return resourceFolder;

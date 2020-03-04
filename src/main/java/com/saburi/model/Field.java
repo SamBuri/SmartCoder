@@ -23,7 +23,7 @@ public class Field {
     private int size = 100;
     private boolean nullable = false;
     private boolean enumerated = false;
-    private String subFields = "subFields";
+    private String subFields = "";
     private String projectID = "";
 
     private String variableName;
@@ -53,7 +53,8 @@ public class Field {
     public Field(String fieldName, String caption, String dataType, String references) {
         this.fieldName = fieldName;
         this.caption = caption;
-        this.dataType = references;
+        this.dataType = dataType;
+        this.references = references;
         this.variableName = Utilities.getVariableName(fieldName);
         this.enumerated = false;
         this.nullable = true;

@@ -30,6 +30,7 @@ public class Navigation {
 
     private static final Class TYPE = App.class;
     public static String styleControls = App.class.getResource("StyleControls.css").toExternalForm();
+
     public static FXMLLoader getUILoader(String ui) {
         try {
             return new FXMLLoader(TYPE.getResource(ui + ".fxml"));
@@ -63,7 +64,7 @@ public class Navigation {
 
     }
 
-    public static void loadUI(String ui, boolean resize) {
+    public static void loadUI(Node node, String ui, boolean resize) {
         try {
             Parent settingsRoot = loadFXML(ui);
             Scene scene = new Scene(settingsRoot);
@@ -71,7 +72,9 @@ public class Navigation {
             Stage stage = new Stage();
             stage.setScene(scene);
             stage.resizableProperty().setValue(resize);
-            
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initStyle(StageStyle.UTILITY);
+            stage.initOwner(node.getScene().getWindow());
             stage.show();
 
         } catch (IOException ex) {
@@ -80,18 +83,18 @@ public class Navigation {
 
     }
 
-    public static void loadUI(MenuItem menuItem, String ui, boolean resize) {
+    public static void loadUI(Node node, MenuItem menuItem, String ui, boolean resize) {
         menuItem.setOnAction(e -> {
 
-            loadUI(ui, resize);
+            loadUI(node, ui, resize);
         });
     }
-    
-    public static void loadEditUi(MenuItem menuItem, String ui, String title, boolean resize) {
+
+    public static void loadEditUi(Node node, MenuItem menuItem, String ui, String title, boolean resize) {
         menuItem.setOnAction(e -> {
 
             try {
-                loadEditUI(ui, title, resize);
+                loadEditUI(node, ui, title, resize);
             } catch (IOException ex) {
                 errorMessage(ex);
             }
@@ -118,7 +121,7 @@ public class Navigation {
 
     }
 
-    public static void loadEditUI(String uiName, String title, boolean resize) throws IOException {
+    public static void loadEditUI(Node node, String uiName, String title, boolean resize) throws IOException {
         try {
 
             FXMLLoader loader = getUILoader(uiName);
@@ -130,6 +133,10 @@ public class Navigation {
             Stage stage = new Stage();
             stage.setScene(scene);
             stage.resizableProperty().setValue(resize);
+            stage.initModality(Modality.APPLICATION_MODAL);
+            stage.initStyle(StageStyle.UTILITY);
+            stage.initOwner(node.getScene().getWindow());
+
             stage.show();
         } catch (IOException ex) {
             errorMessage(ex);
@@ -138,7 +145,7 @@ public class Navigation {
 
     }
 
-    public static void loadEditUI(String uiName, String title, Object objectID, TableView tableView, boolean isPopup, boolean resize) throws IOException {
+    public static void loadEditUI(Node node,String uiName, String title, Object objectID, TableView tableView, boolean isPopup, boolean resize) throws IOException {
         try {
 
             FXMLLoader loader = getUILoader(uiName);
@@ -151,7 +158,7 @@ public class Navigation {
             if (isPopup) {
                 showDialog(root, title, tableView);
             } else {
-                loadUI(uiName, resize);
+                loadUI(node, uiName, resize);
 
             }
         } catch (IOException ex) {

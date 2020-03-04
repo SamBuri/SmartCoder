@@ -63,8 +63,8 @@ public class GenMenu {
                     + "</items>\n"
                     + "</SplitMenuButton>";
         }
-        String searchMenu = "new SearchItem(new " + objectName + "DA(), \"" + objectName + "\", \"" + objectCaption + "s\", false),\n"
-                + "            new SearchItem(new " + objectName + "DA(), Revision, \"" + objectName + "\", \"" + objectCaption + "s\", false)";
+        String searchMenu = "new SearchItem(mainClass, new " + objectName + "DA(), \"" + objectName + "\", \"" + objectCaption + "s\", false),\n"
+                + "            new SearchItem(mainClass, new " + objectName + "DA(), Revision, \"" + objectName + "\", \"" + objectCaption + "s\", false)";
 
         String menuFields = "@FXML private " + menuName + " " + addMenu + ", " + updateMenu + ", " + viewMenu + ";\n";
 
