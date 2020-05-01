@@ -65,7 +65,7 @@ public class UIEdit {
     }
 
     private String makeBody() throws Exception {
-        String body = "<GridPane vgap =\"4\" hgap=\"10\">\n"
+        String body = "<GridPane vgap =\"2\" hgap=\"5\">\n"
                 + "<padding>\n"
                 + "<Insets bottom=\"10.0\" left=\"10.0\" right=\"10.0\" top=\"10.0\" />\n"
                 + "</padding>\n";
@@ -113,7 +113,7 @@ public class UIEdit {
                 String contextMenu = "<contextMenu>\n"
                         + "            <ContextMenu fx:id =\"cmu" + field.getFieldName() + "\" id = \"" + objectName + "\">\n"
                         + "              <items>\n"
-                        + "                <MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + field.getFieldName()+ "\" id = \"" + objectName + "\" text=\"Select " + field.getFieldName() + "\" />\n"
+                        + "                <MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + field.getFieldName()+ "\" id = \"" + objectName + "\" text=\"Select " + field.getCaption()+ "\" />\n"
                         + "              </items>\n"
                         + "            </ContextMenu>\n"
                         + "         </contextMenu>\n";
@@ -130,7 +130,7 @@ public class UIEdit {
                     String contextMenu = "<contextMenu>\n"
                             + "            <ContextMenu fx:id =\"cmu" + field.getFieldName() + "\" id = \"" + objectName + "\">\n"
                             + "              <items>\n"
-                            + "                <MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + field.getFieldName() + "\" id = \"" + objectName + "\" text=\"Select " + field.getFieldName() + "\" />\n"
+                            + "                <MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + field.getFieldName() + "\" id = \"" + objectName + "\" text=\"Select " + field.getCaption()+ "\" />\n"
                             + "              </items>\n"
                             + "            </ContextMenu>\n"
                             + "         </contextMenu>\n";

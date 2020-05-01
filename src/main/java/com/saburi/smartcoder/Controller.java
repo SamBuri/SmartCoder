@@ -127,21 +127,37 @@ public class Controller {
     }
 
     public String setControlIDInInitialiser() {
-       
+
         FieldDAO IDHelperObject = Utilities.getIDHelper(fields);
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
         if (IDHelperObject == null) {
             return "";
+        } else if (idGeneratorObject != null) {
+            if (idGeneratorObject.isReferance()) {
+                return idGeneratorObject.getControlName() + ".setOnAction(e->" + getNextIDLineCall()+ ");";
+            } else {
+                return idGeneratorObject.getControlName() + ".focusedProperty().addListener((ov, t, t1) -> {\n"
+                        + "                if (t) {\n" + getNextIDCall() + "\n}\n"
+                        + "            });";
+            }
+        } else {
+            return getNextIDCall();
         }
-        else {
-            return "this.setNext" + primaryKey.getFieldName() + "();\n";
-        } 
+    }
+
+    private String getNextIDCall() {
+        return "this.setNext" + primaryKey.getFieldName() + "();\n";
+    }
+    
+    private String getNextIDLineCall() {
+        return "this.setNext" + primaryKey.getFieldName() + "()";
     }
 
     private String initMethod(Project currentProject) throws Exception {
         String initProperties = "this.primaryKeyControl = " + primaryKey.getControlName() + ";\n"
                 + "          this.dbAccess = " + daGlobalVariable + ";\n"
                 + "          this.restrainColumnConstraint = false;\n"
-                + " //this.minSize = 360;\n";
+                + " //this.minSize = 300;\n";
         String lookupDataLoadings = "";
         String comboLoadings = "";
         String numberValidator = "";
@@ -164,11 +180,11 @@ public class Controller {
                 } else {
 
                     if (field.getReferences().equalsIgnoreCase("LookupData")) {
-                       lookupDataLoadings += " loadLookupData("+ field.getControlName() + ", "+project.getObjectNameClass()+"." + field.getFieldName().toUpperCase() + ");\n";
-                            menuLoadCalls += "selectLookupData("+project.getNavigationClass()+".MAIN_CLASS, cmiSelect" + field.getFieldName() + ", "+project.getObjectNameClass()+"." + field.getFieldName().toUpperCase() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", false);";
+                        lookupDataLoadings += " loadLookupData(" + field.getControlName() + ", " + project.getObjectNameClass() + "." + field.getFieldName().toUpperCase() + ");\n";
+                        menuLoadCalls += "selectLookupData(cmiSelect" + field.getFieldName() + ", " + project.getObjectNameClass() + "." + field.getFieldName().toUpperCase() + ",  \"" + field.getCaption() + "\", " + field.getControlName() + ", false);";
                     } else {
-                        comboLoadings += "loadDBEntities(o" + field.getReferencesDA() + ".get" + field.getFieldName() + "s(), " + field.getControlName() + ");\n";
-                        menuLoadCalls += "selectItem("+project.getNavigationClass()+".MAIN_CLASS, cmiSelect" + field.getFieldName() + ", o" + field.getReferencesDA() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", true);";
+                        comboLoadings += "loadDBEntities(o" + field.getReferencesDA() + ".get" + field.getReferences() + "s(), " + field.getControlName() + ");\n";
+                        menuLoadCalls += "selectItem(" + project.getNavigationClass() + ".MAIN_CLASS, cmiSelect" + field.getFieldName() + ", o" + field.getReferencesDA() + ", \"" + field.getReferences() + "\", \"" + field.getCaption() + "\", " + field.getControlName() + ", true);";
 
                     }
 
@@ -251,7 +267,7 @@ public class Controller {
                 + "if (buttonText.equalsIgnoreCase(FormMode.Save.name())) {\n"
                 + "                " + daVariableName + ".save();\n"
                 + "                message(\"Saved Successfully\");\n"
-                + "                clear();\n"+afterClearing()
+                + "                clear();\n" + afterClearing()
                 + "            } else if (buttonText.equalsIgnoreCase(FormMode.Update.name())) {\n"
                 + "                " + daVariableName + ".update();\n"
                 + "                message(\"Updated Successfully\");\n"
@@ -296,7 +312,14 @@ public class Controller {
         for (FieldDAO field : fields) {
             afterClearing += field.afterClearing();
         }
-        afterClearing += setControlIDInInitialiser();
+        FieldDAO idGeneratorObject = Utilities.getIDGenerator(fields);
+        FieldDAO IDHelperObject = Utilities.getIDHelper(fields);
+
+        if (idGeneratorObject == null) {
+            if (IDHelperObject != null) {
+                afterClearing += "this.setNext" + primaryKey.getFieldName() + "();\n";
+            }
+        }
         return afterClearing;
     }
 
@@ -330,20 +353,16 @@ public class Controller {
                             + "(" + daGlobalVariable + ".getNext" + idHelperObject.getFieldName() + "(" + idGeneratorVariableName + "), " + idGeneratorVariableName + "));\n";
 
                 } else {
-                    body = "String " + idGeneratorVariableName + " = "
-                            + "getTextValue(cbo" + idGeneratorObject.getFieldName() + ");\n"
-                            + "        if (isNullOrEmpty(" + idGeneratorVariableName + ")) {\n"
-                            + "            return;\n"
-                            + "        }\n"
-                            + idGeneratorObject.initialseSavableVariable() + ""
+                    body = idGeneratorObject.initialseOptianalSavableVariable() + ""
+                            + "if(" + idGeneratorVariableName + " == null){return;}"
                             + primaryKey.getControlName() + ".setText(" + daGlobalVariable + ".getNext" + primaryKey.getFieldName() + ""
-                            + "(" + daGlobalVariable + ".getNext" + idHelperObject.getFieldName() + "(" + idGeneratorVariableName + "DA), " + idGeneratorVariableName + "));\n";
+                            + "(" + daGlobalVariable + ".getNext" + idHelperObject.getFieldName() + "(" + idGeneratorVariableName + "), " + idGeneratorVariableName + ".getId().toString()));\n";
                 }
 
             } else {
                 body = "String " + idGeneratorVariableName + " = "
                         + idGeneratorObject.getControlName() + ".getText();\n"
-                        + "        if (isNullOrEmpty(" + idGeneratorVariableName + ")) {\n"
+                        + "        if (" + idGeneratorVariableName + ".isBlank()) {\n"
                         + "            return;\n"
                         + "        }\n"
                         + primaryKey.getControlName() + ".setText(" + daGlobalVariable + ".getNext" + primaryKey.getFieldName() + ""

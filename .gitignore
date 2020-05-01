@@ -7,3 +7,5 @@ target/
 .ErrorLog.txt
 Report.pdf
 logs/
+Installers/
+Files/

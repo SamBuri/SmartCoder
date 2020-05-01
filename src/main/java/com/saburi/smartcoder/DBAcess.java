@@ -30,7 +30,9 @@ public class DBAcess extends CodeGenerator {
 //    private final List<Field> allFields;
     private String objectNameDA;
     private final String objectVariableName;
+    private final FieldDAO primaryKey;
     private final String primaryKeyVariableName;
+    
     private final String objectNameDAVariableName;
     private final String superClass = "DBAccess";
     private final FilteredList<FieldDAO> collectionList;
@@ -43,7 +45,8 @@ public class DBAcess extends CodeGenerator {
 //        this.allFields.addAll(defaulFields);
         this.objectNameDA = objectName.concat("DA");
         this.objectVariableName = Utilities.getVariableName(objectName);
-        this.primaryKeyVariableName = Utilities.getPrimaryKey(fields).getVariableName();
+        this.primaryKey = Utilities.getPrimaryKey(fields);
+        this.primaryKeyVariableName = primaryKey.getVariableName();
         this.objectNameDAVariableName = Utilities.getVariableName(objectNameDA);
         collectionList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
         collectionList.setPredicate((p) -> p.isCollection());
@@ -221,9 +224,7 @@ public class DBAcess extends CodeGenerator {
 
     private String makeSearchColumn() {
         String searchColumnBody = "";
-        for (FieldDAO field : fields) {
-            searchColumnBody += field.makeSearchColumn();
-        }
+        searchColumnBody = fields.parallelStream().map((field) -> field.makeSearchColumn()).reduce(searchColumnBody, String::concat);
         searchColumnBody += "this.searchColumns.addAll(this.getDefaultSearchColumns());";
 
         return Utilities.makeMethod("private", "void", "createSearchColumns", "", searchColumnBody);
@@ -231,9 +232,7 @@ public class DBAcess extends CodeGenerator {
 
     private String initialiseProperties() {
         String constructorBody = "this.dBEntity = " + objectVariableName.concat(";\n");
-        for (FieldDAO field : fields) {
-            constructorBody += field.daInitialiseProperties(objectVariableName);
-        }
+        constructorBody = fields.stream().map((field) -> field.daInitialiseProperties(objectVariableName)).reduce(constructorBody, String::concat);
         constructorBody += "initCommonProprties();";
         return Utilities.makeMethod("private", "void", "initialseProprties", "", constructorBody);
     }
@@ -338,7 +337,7 @@ public class DBAcess extends CodeGenerator {
             body = joinString;
             body += "return (" + objectName + ") super.findJoin(" + objectName + ".class, " + primaryKeyVariableName + ", associatedEntities);";
         }
-        return makeMethod("public", objectName, "get" + objectName, "String " + primaryKeyVariableName, body);
+        return makeMethod("public", objectName, "get" + objectName, primaryKey.getDeclaration(true, false), body);
     }
 
     private String makeMethods() {
@@ -443,7 +442,7 @@ public class DBAcess extends CodeGenerator {
                     + "        return list;\n"
                     + "    }";
 
-            String daget = "public " + objectNameDA + " get(String " + primaryKeyVariableName + ") throws Exception {\n"
+            String daget = "public " + objectNameDA + " get(" +primaryKey.getDeclaration(true, false) + ") throws Exception {\n"
                     + "       " + objectName + " o" + objectName + " = get" + objectName + "(" + primaryKeyVariableName + ");\n"
                     + "       if(o" + objectName + " == null) throw new Exception(\"No Record with id: \"+" + primaryKeyVariableName + ");\n"
                     + "        return new " + objectNameDA + "(o" + objectName + ");\n"

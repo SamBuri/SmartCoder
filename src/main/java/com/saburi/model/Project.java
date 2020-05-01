@@ -61,6 +61,10 @@ public class Project extends Model {
         return projectID;
     }
 
+    public String getProjectIDDisplay() {
+        return String.valueOf(this.projectID);
+    }
+
     public void setProjectID(int projectID) {
         this.projectID = projectID;
     }
@@ -192,8 +196,6 @@ public class Project extends Model {
     public void setSQLFile(String sQLFile) {
         this.sQLFile = sQLFile;
     }
-
-    
 
     public String getResourceFolder() {
         return resourceFolder;

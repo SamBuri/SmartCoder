@@ -75,13 +75,13 @@
                 <Insets left="10.0" />
             </padding>
             <columns>
-                <TableColumn id="Tools" fx:id="tbcFieldName" editable="true" minWidth="120" text="Field Name">
+                <TableColumn id="Tools" fx:id="tbcFieldName" editable="true" text="Field Name">
                     <cellValueFactory>
                         
                         <PropertyValueFactory property="fieldName" />
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="tbcCaption" editable="true" minWidth="120" text="Caption">
+                <TableColumn fx:id="tbcCaption" editable="true" text="Caption">
                     <cellValueFactory>
                         <PropertyValueFactory property="caption" />
                     </cellValueFactory>
@@ -89,61 +89,61 @@
                     </FormattedTableCellFactory>
                     </cellFactory> -->
                 </TableColumn>
-                <TableColumn fx:id="tbcDataType" editable="true" minWidth="50" text="Data Type">
+                <TableColumn fx:id="tbcDataType" editable="true" text="Data Type">
                     <cellValueFactory>
                         <PropertyValueFactory property="dataType" />
                     </cellValueFactory>
                 </TableColumn>
-                <TableColumn fx:id="tbcReferences" editable="true" minWidth="120" text="References">
+                <TableColumn fx:id="tbcReferences" editable="true" text="References">
                     <cellValueFactory>
                         <PropertyValueFactory property="references" />
                     </cellValueFactory>
                 </TableColumn>
                 
-                <TableColumn fx:id="tbcSubFields" editable="true" minWidth="50" text="Sub Fields">
+                <TableColumn fx:id="tbcSubFields" editable="true" text="Sub Fields">
                     <cellValueFactory>
                         <PropertyValueFactory property="subFields" />
                     </cellValueFactory>
                 </TableColumn>
              
-                <TableColumn fx:id="tbcKey" editable="true" minWidth="50" text="Key">
+                <TableColumn fx:id="tbcKey" editable="true" text="Key">
                     <cellValueFactory>
                         <PropertyValueFactory property="key" />
                     </cellValueFactory>
                 </TableColumn>
              
-                <TableColumn fx:id="tbcSaburiKey" editable="true" minWidth="50" text="Saburi Key">
+                <TableColumn fx:id="tbcSaburiKey" editable="true" text="Saburi Key">
                     <cellValueFactory>
                         <PropertyValueFactory property="saburiKey" />
                     </cellValueFactory>
                 </TableColumn>
                 
                 
-                <TableColumn fx:id="tbcMapping" editable="true" minWidth="50" text="Mapping">
+                <TableColumn fx:id="tbcMapping" editable="true"  text="Mapping">
                     <cellValueFactory>
                         <PropertyValueFactory property="mapping" />
                     </cellValueFactory>
                 </TableColumn>
              
-                <TableColumn fx:id="tbcSize" minWidth="10" text="Size">
+                <TableColumn fx:id="tbcSize" PrefWidth="10" text="Size">
                     <cellValueFactory>
                         <PropertyValueFactory property="size" />
                     </cellValueFactory>
                 </TableColumn>
                 
-                <TableColumn fx:id="tbcEnumerated" editable="true" minWidth="40" text="Enumerated">
+                <TableColumn fx:id="tbcEnumerated" editable="true"  text="Enumerated">
                     <cellValueFactory>
                         <PropertyValueFactory property="enumerated" />
                     </cellValueFactory>
                 </TableColumn>
              
-                <TableColumn fx:id="tbcNullable" editable="true" minWidth="20" text="Nullable">
+                <TableColumn fx:id="tbcNullable" editable="true"  text="Nullable">
                     <cellValueFactory>
                         <PropertyValueFactory property="nullable" />
                     </cellValueFactory>
                 </TableColumn>
                 
-                <TableColumn fx:id="tbcProjectID" editable="true" minWidth="20" text="Proj ID">
+                <TableColumn fx:id="tbcProjectID" editable="true" text="Proj ID">
                     <cellValueFactory>
                         <PropertyValueFactory property="projectID" />
                     </cellValueFactory>

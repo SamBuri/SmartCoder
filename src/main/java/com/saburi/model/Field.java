@@ -202,7 +202,7 @@ public class Field {
     }
 
     public Field(String fieldName, String caption, String dataType, String references, String subFields,
-            String mapping, String key, String saburiKey, int size, boolean emumerated, boolean nullable, String enumClass) {
+            String mapping, String key, String saburiKey, int size, boolean emumerated, boolean nullable, String projectID) {
         this.fieldName = fieldName;
         this.caption = caption;
         this.dataType = dataType;
@@ -214,6 +214,7 @@ public class Field {
         this.size = size;
         this.enumerated = emumerated;
         this.nullable = nullable;
+        this.projectID = projectID;
         this.variableName = Utilities.getVariableName(fieldName);
         this.referencesID = this.fieldName.concat("ID");
         this.display = this.fieldName.concat("Display");
@@ -357,8 +358,8 @@ public class Field {
     public void setDisplayVariableName(String displayVariableName) {
         this.displayVariableName = displayVariableName;
     }
-    
-   @Override
+
+    @Override
     public boolean equals(Object o) {
         if (this == o) {
             return true;
@@ -377,6 +378,5 @@ public class Field {
         return getFieldName().hashCode();
 
     }
-    
 
 }

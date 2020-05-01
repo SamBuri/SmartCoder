@@ -28,7 +28,7 @@ public class FXMLFile {
     
      public String create(Project currentProject, String objectName, String controller, String listControls, boolean makeSaveButton){
       return "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n".concat(imports)
-              +"<VBox fx:id = \"mVBox\" id=\"" + objectName + "\"  spacing=\"10\"  "
+              +"<VBox fx:id = \"mVBox\" id=\"" + objectName + "\"  spacing=\"2\"  "
               + "xmlns=\"http://javafx.com/javafx\" xmlns:fx=\"http://javafx.com/fxml/1\" fx:controller=\""+currentProject.getContollerPackage()+"." + controller + "\">\n"
                 + "<children>\n"
               .concat("\n").concat(body).concat(fxmbodyBottom(makeSaveButton, objectName, listControls));

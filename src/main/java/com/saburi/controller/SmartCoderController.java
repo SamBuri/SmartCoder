@@ -132,7 +132,7 @@ public class SmartCoderController implements Initializable {
     private CheckBox chkOpenFile, chkSaveToProject, chkGenerateMenus, chkGenerateViewUI;
     private final ProjectDAO oProjectDAO = new ProjectDAO();
     private final FieldDAO oFieldDAO = new FieldDAO();
-
+    private List<String> projectIds;
     @Override
     public void initialize(URL url, ResourceBundle rb) {
 
@@ -256,10 +256,11 @@ public class SmartCoderController implements Initializable {
             tbcKey.setCellFactory(ComboBoxTableCell.forTableColumn(keyses));
             tbcSaburiKey.setCellFactory(ComboBoxTableCell.forTableColumn(saburiKeys));
             tbcMapping.setCellFactory(ComboBoxTableCell.forTableColumn(mapppings));
-
-            ObservableList projectIds = FXCollections.observableList(oProjectDAO.read()
-                    .stream().map(Project::getProjectID).collect(Collectors.toList()));
-            tbcProjectID.setCellFactory(ComboBoxTableCell.forTableColumn(projectIds));
+             projectIds= oProjectDAO.read()
+                    .stream().map(Project::getProjectIDDisplay)
+                     .collect(Collectors.toList());
+//             projectIds = FXCollections.observableList(projectIds);
+            tbcProjectID.setCellFactory(ComboBoxTableCell.forTableColumn(FXCollections.observableList(projectIds)));
             addRow(tblSaburiTools, 0);
 
         } catch (Exception e) {
@@ -595,7 +596,15 @@ public class SmartCoderController implements Initializable {
                     case "FXML":
                         pairs = new Pair[]{fxlPairProj};
                         break;
-
+                    case "FXML View":
+                        pairs = new Pair[]{fxlTBPair};
+                        break;
+                    case "Menu":
+                        pairs = new Pair[]{menuPair};
+                        break;
+                    case "SQL":
+                        pairs = new Pair[]{sqlPair};
+                        break;
                     default:
                         pairs = new Pair[]{entityPairProj, daFilePairProj, controllerPairProj, fxlPairProj};
 

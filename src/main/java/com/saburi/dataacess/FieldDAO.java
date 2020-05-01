@@ -253,8 +253,16 @@ public class FieldDAO {
 
     public boolean hasDisplay() {
         return this.getDataType().equalsIgnoreCase("Double") || this.getDataType().equalsIgnoreCase("float")
+                ||this.getDataType().equalsIgnoreCase("int") || this.getDataType().equalsIgnoreCase("Integer")
                 || this.getDataType().equalsIgnoreCase("Date") || this.getDataType().equalsIgnoreCase("DateTime")
                 || this.getDataType().equalsIgnoreCase("LocalDate") || this.getDataType().equalsIgnoreCase("LocalDateTime");
+    }
+
+    private String getToDisplayValue() {
+        if (hasDisplay()) {
+            return displayVariableName + ".get(), ";
+        }
+        return "";
     }
 
     public boolean isCollection() {
@@ -325,9 +333,13 @@ public class FieldDAO {
         String type = this.dataType.get();
         if (type.equalsIgnoreCase("String")) {
             return "SearchDataTypes.STRING";
-        } else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer") || type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")) {
+        } else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
+            return "SearchDataTypes.INTEGER";
+        } else if (type.equalsIgnoreCase("float")) {
             return "SearchDataTypes.NUMBER";
-        } else if (type.equalsIgnoreCase("Date") || type.equalsIgnoreCase("Time")) {
+        } else if (type.equalsIgnoreCase("double")) {
+            return "SearchDataTypes.MONEY";
+        } else if (type.equalsIgnoreCase("LocalDate") || type.equalsIgnoreCase("LocalDateTime") || type.equalsIgnoreCase("Date") || type.equalsIgnoreCase("Time")) {
             return "SearchDataTypes.DATE";
         } else if (type.equalsIgnoreCase("bool") || type.equalsIgnoreCase("Boolean")) {
             return "SearchDataTypes.BOOLEAN";
@@ -453,7 +465,7 @@ public class FieldDAO {
                 || type.equalsIgnoreCase("LocalDate") || type.equalsIgnoreCase("LocalDateTime")) {
             return Utilities.makeMethod("public", "Object", "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"))
                     + Utilities.makeMethod("public", displayDataType, "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
-        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")) {
+        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")||type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
             return Utilities.makeMethod("public", getUsableDataType(false), "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"))
                     + Utilities.makeMethod("public", displayDataType, "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
         } else if (type.equalsIgnoreCase("bool") || type.equalsIgnoreCase("boolean")) {
@@ -527,8 +539,12 @@ public class FieldDAO {
 
             }
             fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
-            fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
-            column += "@Column(length = " + getSize() + ", updatable = false)";
+            if (getDataType().equalsIgnoreCase("String")) {
+                fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
+                column += "@Column(length = " + getSize() + ", updatable = false)";
+            } else {
+                column += "@Column(updatable = false)";
+            }
 
         } else if (isCollection()) {
 
@@ -655,10 +671,9 @@ public class FieldDAO {
 
             }
         } else if (dataType.get().equalsIgnoreCase("String")) {
-            addIfNotExists(list, "import javax.persistence.Column");
             addIfNotExists(list, "import javax.validation.constraints.Size");
             if (key.get().equalsIgnoreCase("Unique")) {
-                addIfNotExists(list, "import javax.persistence.Column");
+
             }
 
             if (!nullable.get()) {
@@ -688,10 +703,14 @@ public class FieldDAO {
             project = currentProject;
         }
         this.commonProject = oProjectDAO.find(project.getCommonProjectID());
+        
+        if(currentProject.getProjectID()!=commonProject.getProjectID() && isHelper()){
+            addIfNotExists(list, "import " + commonProject.getDBAccessPackage()+ ".IDGeneratorDA");
+        }
         if (isCollection()) {
             if (isReferance()) {
                 if (enumerated.get()) {
-                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + currentProject.getEnumClass() + "." + references.get());
+                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
                 } else {
                     addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
 
@@ -704,7 +723,7 @@ public class FieldDAO {
             if (isReferance()) {
                 if (enumerated.get()) {
 
-                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + currentProject.getEnumClass() + "." + references.get());
+                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
 
                 } else {
                     addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
@@ -720,7 +739,10 @@ public class FieldDAO {
         } else if (dataType.get().equalsIgnoreCase("double") || dataType.get().equalsIgnoreCase("float")) {
             addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatNumber");
 
-        } else if (dataType.get().equalsIgnoreCase("Image")) {
+        } else if (dataType.get().equalsIgnoreCase("int") || dataType.get().equalsIgnoreCase("Integer")) {
+            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatInteger");
+
+        }else if (dataType.get().equalsIgnoreCase("Image")) {
             addIfNotExists(list, "import javafx.scene.image.ImageView");
             addIfNotExists(list, "import " + commonProject.getUtilPackage() + ".FXUIUtils");
 
@@ -812,7 +834,8 @@ public class FieldDAO {
             } else if (type.equalsIgnoreCase("String")) {
                 return "private final SimpleStringProperty " + variableName + " =  new SimpleStringProperty(this,\"" + variableName + "\");\n";
             } else if (type.equalsIgnoreCase("int")) {
-                return "private final SimpleIntegerProperty " + variableName + " =  new SimpleIntegerProperty(this,\"" + variableName + "\");\n";
+                return "private final SimpleIntegerProperty " + variableName + " =  new SimpleIntegerProperty(this,\"" + variableName + "\");\n"
+                        + "private final SimpleStringProperty " + displayVariableName + " =  new SimpleStringProperty(this,\"" + displayVariableName + "\");\n";
             } else if (type.equalsIgnoreCase("float")) {
                 return "private final SimpleFloatProperty " + variableName + " =  new SimpleFloatProperty(this,\"" + variableName + "\");\n"
                         + "private final SimpleStringProperty " + displayVariableName + " =  new SimpleStringProperty(this,\"" + displayVariableName + "\");\n";
@@ -837,13 +860,13 @@ public class FieldDAO {
 
         if (this.isReferance()) {
             if (this.getEnumerated()) {
-                return "this.searchColumns.add(new SearchColumn(\"" + this.getVariableName() + "\", \"" + this.getCaption() + "\", this." + this.getVariableName() + ".get(), " + this.getSearchDataType() + ", SearchColumn.SearchType.Equal));\n";
+                return "this.searchColumns.add(new SearchColumn(\"" + this.getVariableName() + "\", \"" + this.getCaption() + "\", this." + this.getVariableName() + ".get(), " + getToDisplayValue() + this.getSearchDataType() + ", SearchColumn.SearchType.Equal));\n";
             } else {
                 return "this.searchColumns.add(new SearchColumn(\"" + this.getReferencesVariableID() + "\", \"" + this.getCaption() + " ID\", this." + getReferencesVariableID() + ".get(), " + getSearchDataType() + ", SearchColumn.SearchType.Equal,false));\n"
                         + "this.searchColumns.add(new SearchColumn(\"" + displayVariableName + "\", \"" + this.getCaption() + "\", this." + displayVariableName + ".get(), " + getSearchDataType() + "));\n";
             }
         } else {
-            return "this.searchColumns.add(new SearchColumn(\"" + this.getVariableName() + "\", \"" + this.getCaption() + "\", this." + getVariableName() + ".get(), " + getSearchDataType() + "));\n";
+            return "this.searchColumns.add(new SearchColumn(\"" + this.getVariableName() + "\", \"" + this.getCaption() + "\", this." + getVariableName() + ".get(), " + getToDisplayValue() + getSearchDataType() + "));\n";
         }
 
     }
@@ -921,7 +944,7 @@ public class FieldDAO {
                 addIfNotExists(list, "import javafx.scene.control.MenuItem");
                 addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
                 addIfNotExists(list, "import  " + project.getEntityPackage() + "." + getReferences());
-                 addIfNotExists(list, "import  " + project.getUtilPackage()+ "." + project.getNavigationClass());
+                addIfNotExists(list, "import  " + project.getUtilPackage() + "." + project.getNavigationClass());
                 if (references.get().equalsIgnoreCase("LookupData")) {
                     addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getObjectNameClass());
                 }
@@ -1065,6 +1088,53 @@ public class FieldDAO {
         }
     }
 
+    public String initialseOptianalSavableVariable() {
+        if (isHelper()) {
+            return "";
+        }
+        String controlName = this.getControlName();
+        if (isCollection()) {
+
+            return "List<" + getReferencesDA() + "> " + variableName + "DAs = " + controlName + ".getItems();\n"
+                    + variableName + "DAs.removeIf((p) -> p.get" + getFieldName() + "() == null);\n";
+
+        }
+        if (isReferance()) {
+            if (enumerated.get()) {
+                return references.get() + " " + this.variableName + " =  (" + references.get() + ")getSelectedValue(" + controlName + ", \"" + caption.get() + "\");\n";
+            }
+            return getReferences() + " " + this.variableName + " =(" + getReferences() + ") getEntity(" + controlName + ");\n";
+        }
+
+        if (dataType.get().equalsIgnoreCase("Date") || dataType.get().equalsIgnoreCase("DateTime")
+                || dataType.get().equalsIgnoreCase("LocalDate") || dataType.get().equalsIgnoreCase("LocalDateTime")) {
+            return "LocalDate " + this.variableName + " = getDate(" + controlName + ");\n";
+        }
+
+        if (dataType.get().equalsIgnoreCase("bool") || dataType.get().equalsIgnoreCase("boolean")) {
+            return "boolean " + this.variableName + " = " + controlName + ".isSelected();\n";
+        }
+
+        if (dataType.get().equalsIgnoreCase("String")) {
+            return "String " + this.variableName + " =  getText(" + controlName + ");\n";
+        }
+        if (dataType.get().equalsIgnoreCase("int")) {
+            return "int " + this.variableName + " =  getInt(" + controlName + ");\n";
+        }
+        if (dataType.get().equalsIgnoreCase("float")) {
+            return "float " + this.variableName + " =  getFloat(" + controlName + ");\n";
+        }
+        if (dataType.get().equalsIgnoreCase("double")) {
+            return "double " + this.variableName + " =  getDouble(" + controlName + ");\n";
+        }
+
+        if (dataType.get().equalsIgnoreCase("Image")) {
+            return "byte[] " + this.variableName + " = getBytes(" + controlName + ");\n";
+        } else {
+            return "String " + this.variableName + " =  getText(" + controlName + ");\n";
+        }
+    }
+
     public String daInitialiseProperties(String objectVariableName) {
         String propertInitialised = "";
         if (isCollection()) {
@@ -1087,6 +1157,9 @@ public class FieldDAO {
 
         if (getDataType().equalsIgnoreCase("float") || getDataType().equalsIgnoreCase("double")) {
             propertInitialised += "this." + displayVariableName + ".set(formatNumber(" + objectVariableName + "." + getCall() + "));\n";
+
+        }if (getDataType().equalsIgnoreCase("int") || getDataType().equalsIgnoreCase("Integer")) {
+            propertInitialised += "this." + displayVariableName + ".set(formatInteger(" + objectVariableName + "." + getCall() + "));\n";
 
         } else if (dataType.get().equalsIgnoreCase("Date") || dataType.get().equalsIgnoreCase("LocalDate")) {
             propertInitialised += "this." + displayVariableName + ".set(formatDate(" + objectVariableName + "." + getCall() + "));\n";
@@ -1140,12 +1213,12 @@ public class FieldDAO {
             return "";
         }
         switch (getControlType()) {
-            
+
             case TableView:
 
                 return "addRow(" + getControlName() + ", new " + getReferencesDA() + "());\n";
             default:
-                return  "";
+                return "";
         }
     }
 
@@ -1201,7 +1274,7 @@ public class FieldDAO {
                     line += ">\n<contextMenu>\n"
                             + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
                             + " <items>\n"
-                            + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getFieldName() + "\" />\n"
+                            + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getCaption()+ "\" />\n"
                             + "   </items>\n"
                             + "</ContextMenu>\n"
                             + " </contextMenu>\n"
@@ -1269,7 +1342,7 @@ public class FieldDAO {
                         + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
                         + " <items>\n"
                         + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiLoad\" id = \"" + id + "\" text=\"Load\" />"
-                        + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getFieldName() + "\" />\n"
+                        + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getCaption()+ "\" />\n"
                         + "   </items>\n"
                         + "</ContextMenu>\n"
                         + " </contextMenu>\n"

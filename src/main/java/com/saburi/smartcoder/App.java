@@ -4,8 +4,6 @@ import com.saburi.utils.FXUIUtils;
 import com.saburi.utils.Navigation;
 import static com.saburi.utils.Navigation.styleControls;
 import javafx.application.Application;
-import javafx.fxml.FXMLLoader;
-import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
 

@@ -30,7 +30,7 @@ public class Entity extends CodeGenerator {
     String objectNameView;
     String primaryKeyVariableName;
     String objectVariableName;
-    private final ProjectDAO oProjectDAO =  new ProjectDAO();
+    private final ProjectDAO oProjectDAO = new ProjectDAO();
 
     public Entity(String objectName, List<FieldDAO> fields) {
         this.objectName = objectName;
@@ -46,7 +46,9 @@ public class Entity extends CodeGenerator {
 
     public String makeEntityImports(Project currentProject) {
         Project commonProject = oProjectDAO.find(currentProject.getCommonProjectID());
-        String imp = "import javax.persistence.Entity;\n"
+        String imp = "import java.util.Objects;\n"
+                + "import javax.persistence.Column;\n"
+                + "import javax.persistence.Entity;\n"
                 + "import javax.persistence.Id;\n"
                 + "import org.hibernate.envers.Audited;\n"
                 + "import org.hibernate.envers.RelationTargetAuditMode;\n";
@@ -182,7 +184,7 @@ public class Entity extends CodeGenerator {
 
         String objectHashCode = "    @Override\n"
                 + "    public int hashCode() {\n"
-                + "        return this." + primaryKeyVariableName + ".hashCode();\n"
+                + "        return Objects.hashCode(this." + primaryKeyVariableName + ");\n"
                 + "\n"
                 + "    }";
 
