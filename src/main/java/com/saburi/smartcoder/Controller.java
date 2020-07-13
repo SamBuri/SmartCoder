@@ -48,7 +48,7 @@ public class Controller {
         subListFields.setPredicate(FieldPredicates.hasSubFields());
     }
 
-    private String imports(Project currentProject) {
+    private String imports(Project currentProject) throws Exception {
         Project commonProject = oProjectDAO.find(currentProject.getCommonProjectID());
         String imp = "import java.net.URL;\n"
                 + "import java.util.ResourceBundle;\n"
@@ -60,6 +60,20 @@ public class Controller {
         if (commonProject.getProjectID() != currentProject.getProjectID()) {
             imp += "import " + oProjectDAO.find(currentProject.getCommonProjectID()).getContollerPackage() + ".EditController;\n";
         }
+        for (FieldDAO field : subListFields) {
+            List<FieldDAO> subFields = field.getSubFieldListDAO();
+
+            for (FieldDAO subField : subFields) {
+
+                if (subField.getDataType().equalsIgnoreCase("boolean")) {
+                    imp += "import javafx.beans.property.SimpleBooleanProperty;\n"
+                            + "import javafx.beans.value.ObservableValue;\n"
+                            + "import javafx.scene.control.TableCell;\n"
+                            + "import javafx.scene.control.cell.CheckBoxTableCell;\n"
+                            + "import javafx.util.Callback;\n";
+                }
+            }
+        }
 
         List<String> imports = new ArrayList();
         this.fields.forEach((t) -> {
@@ -70,9 +84,7 @@ public class Controller {
             }
 
         });
-        for (String impo : imports) {
-            imp += impo + ";\n";
-        }
+        imp = imports.stream().map((impo) -> impo + ";\n").reduce(imp, String::concat);
         return imp;
 
     }
@@ -94,7 +106,7 @@ public class Controller {
                     properties += field.annotedImageButtons();
                     if (field.isReferance() && !field.getEnumerated()) {
                         properties += "@FXML private MenuItem cmiSelect" + field.getFieldName() + ";\n";
-                        if (!field.getReferences().equalsIgnoreCase("LookupData")) {
+                        if (!(field.getReferences().equalsIgnoreCase("LookupData") || field.getReferences().equalsIgnoreCase(objectName))) {
                             addIfNotExists(globalRefObjects, field.getReferencesDA());
                         }
                     }
@@ -111,10 +123,13 @@ public class Controller {
 
             for (FieldDAO subField : subFields) {
                 if (subField.isReferance()) {
-                    tableColumns += subField.getReferencesDA() + " o" + subField.getReferencesDA() + " = new " + subField.getReferencesDA() + "();\n";
+                    if (!field.getReferences().equalsIgnoreCase(objectName)) {
+                        tableColumns += subField.getReferencesDA() + " o" + subField.getReferencesDA() + " = new " + subField.getReferencesDA() + "();\n";
+                    }
                 }
                 String type = subField.getDataType();
-                if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")) {
+                if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")
+                        || type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
                     tableColumns += "@FXML private TableColumn<" + custom + "DA, String> " + subField.getColumnName(custom) + ";\n";
                 } else {
                     tableColumns += "@FXML private TableColumn<" + custom + "DA, " + subField.getDataTypeWrapper() + "> " + subField.getColumnName(custom) + ";\n";
@@ -134,7 +149,7 @@ public class Controller {
             return "";
         } else if (idGeneratorObject != null) {
             if (idGeneratorObject.isReferance()) {
-                return idGeneratorObject.getControlName() + ".setOnAction(e->" + getNextIDLineCall()+ ");";
+                return idGeneratorObject.getControlName() + ".setOnAction(e->" + getNextIDLineCall() + ");";
             } else {
                 return idGeneratorObject.getControlName() + ".focusedProperty().addListener((ov, t, t1) -> {\n"
                         + "                if (t) {\n" + getNextIDCall() + "\n}\n"
@@ -148,7 +163,7 @@ public class Controller {
     private String getNextIDCall() {
         return "this.setNext" + primaryKey.getFieldName() + "();\n";
     }
-    
+
     private String getNextIDLineCall() {
         return "this.setNext" + primaryKey.getFieldName() + "()";
     }
@@ -157,7 +172,7 @@ public class Controller {
         String initProperties = "this.primaryKeyControl = " + primaryKey.getControlName() + ";\n"
                 + "          this.dbAccess = " + daGlobalVariable + ";\n"
                 + "          this.restrainColumnConstraint = false;\n"
-                + " //this.minSize = 300;\n";
+                + " //this.prefSize = 300;\n";
         String lookupDataLoadings = "";
         String comboLoadings = "";
         String numberValidator = "";
@@ -165,6 +180,7 @@ public class Controller {
         String imageButtonActions = "";
         String editableTable = "";
         String menuLoadCalls = "";
+        String hiddenCheckBox = "";
         for (FieldDAO field : fields) {
             Project project;
             if (field.getProjectID().isBlank()) {
@@ -200,6 +216,10 @@ public class Controller {
                 }
 
             }
+            if (field.getControlName().equalsIgnoreCase("chkHidden")) {
+                hiddenCheckBox += "chkHidden.disableProperty().bind(btnSave.textProperty().isEqualToIgnoreCase(FormMode.Save.name()));";
+            }
+
             imageButtonActions += field.ImageButtonsActions();
             numberValidator += field.NumberValidator();
             numberFormator += field.NumberFormatter();
@@ -209,15 +229,32 @@ public class Controller {
                 + numberValidator + numberFormator + editableTable;
 
         String editColumnMethodCall = "";
+        String booleanTableColumnEdit = "";
         for (FieldDAO field : subListFields) {
             List<FieldDAO> subFields = field.getSubFieldListDAO();
-
+            String custom = field.getReferences();
+            String refereceDA = field.getReferencesDA().trim();
+            String referenceVariableName = Utilities.getVariableName(refereceDA);
             for (FieldDAO subField : subFields) {
+                String customColumnName = subField.getColumnName(custom);
                 editColumnMethodCall += "set" + field.getReferences() + subField.getFieldName() + "();\n";
+                if (subField.getDataType().equalsIgnoreCase("boolean")) {
+                    booleanTableColumnEdit += "final Callback<TableColumn<" + refereceDA + ", Boolean>, TableCell<" + refereceDA + ", Boolean>> \n"
+                            + "                    " + subField.getVariableName() + "Factory = CheckBoxTableCell.forTableColumn(" + customColumnName + ");\n"
+                            + "            " + customColumnName + ".setCellValueFactory((TableColumn.CellDataFeatures<" + refereceDA + ", Boolean> param) -> {\n"
+                            + "                " + refereceDA + " " + referenceVariableName + " = param.getValue();\n"
+                            + "                SimpleBooleanProperty valueBooleanProperty = new SimpleBooleanProperty(" + referenceVariableName + "." + subField.getCall() + ");\n"
+                            + "                valueBooleanProperty.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {\n"
+                            + "                    " + referenceVariableName + ".set" + subField.getFieldName() + "(newValue);\n"
+                            + "                });\n"
+                            + "                return valueBooleanProperty;\n"
+                            + "            });\n"
+                            + "            " + customColumnName + ".setCellFactory(" + subField.getVariableName() + "Factory);";
+                }
             }
         }
 
-        methodBody += initProperties + imageButtonActions + setControlIDInInitialiser() + editColumnMethodCall + menuLoadCalls;
+        methodBody += initProperties + imageButtonActions + setControlIDInInitialiser() + editColumnMethodCall + booleanTableColumnEdit + menuLoadCalls + hiddenCheckBox;
         return " @Override\n" + Utilities.makeTryMethod("public", "void", "initialize", "URL url, ResourceBundle rb", methodBody);
     }
 
@@ -411,7 +448,7 @@ public class Controller {
         }
 
         String loadMethods = "";
-        loadMethods = subListFields.stream().map((field) -> field.makeLoadCollections()).reduce(loadMethods, String::concat);
+        loadMethods = subListFields.stream().map((field) -> field.makeLoadCollections(currentProject)).reduce(loadMethods, String::concat);
         return initMethod(currentProject) + save() + cDelete + loadData() + getSetIDControl() + editColumn + loadMethods;
 
     }

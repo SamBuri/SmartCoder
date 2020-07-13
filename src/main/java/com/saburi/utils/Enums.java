@@ -12,7 +12,7 @@ package com.saburi.utils;
 public class Enums {
 
     public static enum keys {
-        Primary, Foreign, Unique, None
+        Primary, Primary_Auto, Foreign, Unique, Unique_Group, None
     };
 
     public static enum Saburikeys {

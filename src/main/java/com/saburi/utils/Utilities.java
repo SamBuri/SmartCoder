@@ -35,7 +35,7 @@ public class Utilities {
         List<List> bigList = new ArrayList<>();
         try {
 
-            try (BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
+            try ( BufferedReader reader = new BufferedReader(new FileReader(fileName))) {
                 String line;
 
                 while ((line = reader.readLine()) != null) {
@@ -60,7 +60,7 @@ public class Utilities {
     public static void writeFile(String fileName, Object[] value) {
 
         try {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            try ( BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
                 for (Object s : value) {
                     writer.append(s.toString());
                     writer.newLine();
@@ -77,7 +77,7 @@ public class Utilities {
     public static void writeFile(String fileName, String content) {
 
         try {
-            try (BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+            try ( BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
 
                 writer.write(content);
                 writer.newLine();
@@ -89,8 +89,8 @@ public class Utilities {
         }
 
     }
-    
-    public boolean fileExists(String fileName){
+
+    public boolean fileExists(String fileName) {
         try {
             File file = new File(fileName);
             return file.exists();
@@ -113,28 +113,26 @@ public class Utilities {
 
     }
 
-    public static void writeFileAppend(String fileName, String content) {
+    public static void writeFileAppend(String fileName, String content) throws FileNotFoundException, IOException {
 
         try {
-            BufferedWriter writer = new BufferedWriter(new FileWriter(fileName));
-
-            writer.append(content);
-            writer.newLine();
-
-            writer.close();
+            try ( BufferedWriter writer = new BufferedWriter(new FileWriter(fileName))) {
+                writer.append(content);
+                writer.newLine();
+            }
         } catch (FileNotFoundException ex) {
-            errorMessage(ex);
+            throw ex;
         } catch (IOException ex) {
-            errorMessage(ex);
+            throw ex;
         }
 
     }
 
-    public static void openFile(String fileName) {
+    public static void openFile(String fileName) throws IOException {
         try {
             Runtime.getRuntime().exec("rundll32 url.dll,FileProtocolHandler " + fileName);
         } catch (IOException ex) {
-            errorMessage(ex);
+            throw ex;
         }
     }
 
@@ -149,6 +147,14 @@ public class Utilities {
             String body) {
 
         return visibility + " " + returnType + " " + methodName + "(" + parameters + "){\n"
+                + " " + body + "\n"
+                + "}\n";
+    }
+
+    public static String makeThrowsMethod(String visibility, String returnType, String methodName, String parameters,
+            String body) {
+
+        return visibility + " " + returnType + " " + methodName + "(" + parameters + ")throws Exception{\n"
                 + " " + body + "\n"
                 + "}\n";
     }
@@ -260,6 +266,8 @@ public class Utilities {
         for (FieldDAO field : fields) {
             if (field.getKey().equalsIgnoreCase(Enums.keys.Primary.name())) {
                 return field;
+            } else if (field.getKey().equalsIgnoreCase(Enums.keys.Primary_Auto.name())) {
+                return field;
             }
         }
         return null;
@@ -285,9 +293,6 @@ public class Utilities {
 
     public static String makeTable(String objectName, String tableColumn, String contextMenu) {
         return "<TableView fx:id=\"tbl" + objectName + "\" id = \"" + objectName + "\" VBox.vgrow=\"ALWAYS\" minHeight=\"300\" minWidth=\"450\">\n"
-                + "<padding>\n"
-                + "<Insets bottom=\"10.0\" left=\"10.0\" right=\"10.0\" top=\"10.0\" />\n"
-                + "</padding>\n"
                 + "<columns>".concat(tableColumn).concat("</columns>\n").concat(contextMenu)
                 + "</TableView>\n";
     }

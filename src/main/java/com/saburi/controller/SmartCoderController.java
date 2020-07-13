@@ -44,6 +44,8 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import java.util.stream.Collectors;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -56,6 +58,7 @@ import javafx.geometry.Pos;
 import javafx.scene.control.Button;
 import javafx.scene.control.CheckBox;
 import javafx.scene.control.ComboBox;
+import javafx.scene.control.Label;
 import javafx.scene.control.TableCell;
 import javafx.scene.control.TableColumn;
 
@@ -85,7 +88,7 @@ public class SmartCoderController implements Initializable {
     private final ObservableList mapppings = FXCollections.observableArrayList(RelationMappping.OneToOne.name(),
             RelationMappping.OneToMany.name(), RelationMappping.ManyToOne.name(), RelationMappping.ManyToMany.name());
 
-    private final ObservableList keyses = FXCollections.observableArrayList(keys.Primary.name(), Enums.keys.Foreign.name(), Enums.keys.Unique.name(), Enums.keys.None.name());
+    private final ObservableList keyses = FXCollections.observableArrayList(keys.values());
 
     private final ObservableList saburiKeys = FXCollections.observableArrayList(Saburikeys.ID_Helper.name(),
             Saburikeys.ID_Generator.name(), Saburikeys.Display.name(), Saburikeys.None.name());
@@ -99,8 +102,10 @@ public class SmartCoderController implements Initializable {
     @FXML
     TableView<FieldDAO> tblSaburiTools;
     @FXML
-    private TableColumn<FieldDAO, String> tbcFieldName, tbcCaption, tbcDataType, tbcReferences, tbcKey,
+    private TableColumn<FieldDAO, String> tbcFieldName, tbcCaption, tbcDataType, tbcReferences,
             tbcSaburiKey, tbcMapping, tbcSubFields, tbcProjectID;
+    @FXML
+    private TableColumn<FieldDAO, keys> tbcKey;
     @FXML
     private TableColumn<FieldDAO, Integer> tbcSize;
 
@@ -127,12 +132,15 @@ public class SmartCoderController implements Initializable {
     private ComboBox<Project> cboProject;
     @FXML
     private ComboBox<MenuTypes> cboMenuType;
+    @FXML
+    private Label lblRowCount;
 
     @FXML
     private CheckBox chkOpenFile, chkSaveToProject, chkGenerateMenus, chkGenerateViewUI;
     private final ProjectDAO oProjectDAO = new ProjectDAO();
     private final FieldDAO oFieldDAO = new FieldDAO();
     private List<String> projectIds;
+
     @Override
     public void initialize(URL url, ResourceBundle rb) {
 
@@ -256,9 +264,10 @@ public class SmartCoderController implements Initializable {
             tbcKey.setCellFactory(ComboBoxTableCell.forTableColumn(keyses));
             tbcSaburiKey.setCellFactory(ComboBoxTableCell.forTableColumn(saburiKeys));
             tbcMapping.setCellFactory(ComboBoxTableCell.forTableColumn(mapppings));
-             projectIds= oProjectDAO.read()
+            projectIds = oProjectDAO.read()
                     .stream().map(Project::getProjectIDDisplay)
-                     .collect(Collectors.toList());
+                    .collect(Collectors.toList());
+            projectIds.add(0, "");
 //             projectIds = FXCollections.observableList(projectIds);
             tbcProjectID.setCellFactory(ComboBoxTableCell.forTableColumn(FXCollections.observableList(projectIds)));
             addRow(tblSaburiTools, 0);
@@ -273,6 +282,7 @@ public class SmartCoderController implements Initializable {
         try {
 
             tblSaburiTools.setItems(FXCollections.observableList(FieldDAO.getFieldDAOs(this.readFile(txtFileName.getText(), ","))));
+            lblRowCount.setText("" + tblSaburiTools.getItems().size() + " row(s)");
             addRow(tblSaburiTools, tblSaburiTools.getItems().size() - 1);
         } catch (Exception e) {
             errorMessage(e);
@@ -316,6 +326,7 @@ public class SmartCoderController implements Initializable {
                     .get(event.getTablePosition().getRow()))
                     .setFieldName(value);
             tblSaburiTools.refresh();
+            lblRowCount.setText("" + (tblSaburiTools.getItems().size() - 1) + " row(s)");
             addRow(tblSaburiTools, event.getTablePosition().getRow());
 
         });
@@ -388,11 +399,11 @@ public class SmartCoderController implements Initializable {
     private void editKey() {
 
         tbcKey.setOnEditCommit(event -> {
-            final String value = event.getNewValue() != null ? event.getNewValue()
+            final keys value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setKey(value);
+                    .setKey(value.name());
             tblSaburiTools.refresh();
         });
     }
@@ -637,8 +648,16 @@ public class SmartCoderController implements Initializable {
                 return;
             }
 
-            lstPairs.forEach(a -> openFile(a.getKey()));
+            lstPairs.forEach(a -> {
+                try {
+                    openFile(a.getKey());
+                } catch (IOException ex) {
+                    errorMessage(ex);
+                }
+            });
 
+        } catch (IOException ex) {
+            Logger.getLogger(SmartCoderController.class.getName()).log(Level.SEVERE, null, ex);
         } catch (Exception e) {
             errorMessage(e);
         }

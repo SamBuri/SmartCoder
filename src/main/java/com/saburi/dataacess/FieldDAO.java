@@ -251,9 +251,16 @@ public class FieldDAO {
         return "tbc" + getFieldName();
     }
 
+    public String getDBColumnName() {
+        if (isReferance() && !getEnumerated()) {
+            return this.getVariableName().concat("ID");
+        }
+        return this.getVariableName();
+    }
+
     public boolean hasDisplay() {
         return this.getDataType().equalsIgnoreCase("Double") || this.getDataType().equalsIgnoreCase("float")
-                ||this.getDataType().equalsIgnoreCase("int") || this.getDataType().equalsIgnoreCase("Integer")
+                || this.getDataType().equalsIgnoreCase("int") || this.getDataType().equalsIgnoreCase("Integer")
                 || this.getDataType().equalsIgnoreCase("Date") || this.getDataType().equalsIgnoreCase("DateTime")
                 || this.getDataType().equalsIgnoreCase("LocalDate") || this.getDataType().equalsIgnoreCase("LocalDateTime");
     }
@@ -286,6 +293,10 @@ public class FieldDAO {
         return this.getKey().equalsIgnoreCase(keys.Primary.name());
     }
 
+    public boolean isPrimaryKeyAuto() {
+        return this.getKey().equalsIgnoreCase(keys.Primary_Auto.name());
+    }
+
     public boolean isHelper() {
         return this.getSaburiKey().equalsIgnoreCase(Saburikeys.ID_Helper.name());
     }
@@ -296,6 +307,13 @@ public class FieldDAO {
 
     public boolean isDisplayKey() {
         return this.getSaburiKey().equalsIgnoreCase(Saburikeys.Display.name());
+    }
+
+    public String getReferenceDisplayText() {
+        if (isReferance() && !getEnumerated()) {
+            return ".getDisplayKey()";
+        }
+        return "";
     }
 
     public String getDeclaration(boolean forceReferences, boolean newLine) {
@@ -465,7 +483,7 @@ public class FieldDAO {
                 || type.equalsIgnoreCase("LocalDate") || type.equalsIgnoreCase("LocalDateTime")) {
             return Utilities.makeMethod("public", "Object", "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"))
                     + Utilities.makeMethod("public", displayDataType, "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
-        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")||type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
+        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double") || type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
             return Utilities.makeMethod("public", getUsableDataType(false), "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"))
                     + Utilities.makeMethod("public", displayDataType, "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
         } else if (type.equalsIgnoreCase("bool") || type.equalsIgnoreCase("boolean")) {
@@ -508,6 +526,11 @@ public class FieldDAO {
                     setCall(objectName) + "this." + this.variableName.concat(".set(" + this.variableName + ");\n"
                     + "this." + displayVariableName.concat(".set") + "(formatNumber(" + variableName + "));"));
 
+        } else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
+            return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
+                    setCall(objectName) + "this." + this.variableName.concat(".set(" + this.variableName + ");\n"
+                    + "this." + displayVariableName.concat(".set") + "(formatInteger(" + variableName + "));"));
+
         } else {
             return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
                     setCall(objectName) + "this." + this.variableName.concat(".set(" + this.variableName + ");"));
@@ -533,19 +556,33 @@ public class FieldDAO {
         }
         String column = "";
         if (key.get().equalsIgnoreCase(keys.Primary.name())) {
-            fieldAnnotation += "@Id\n";
-            if (enumerated.get()) {
-                fieldAnnotation += "@Enumerated\n";
+            if (isReferance()) {
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+                if (enumerated.get()) {
+                    fieldAnnotation += "@Id\n";
+                    fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
+                    fieldAnnotation += "@Enumerated(EnumType.STRING)\n";
+                    fieldAnnotation += "@Column(length = " + getSize() + ")";
 
-            }
-            fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
-            if (getDataType().equalsIgnoreCase("String")) {
-                fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
-                column += "@Column(length = " + getSize() + ", updatable = false)";
+                } else {
+                    fieldAnnotation += "@MapsId(\"" + getReferences().concat("ID") + "\")\n"
+                            + "    @OneToOne\n"
+                            + "    @JoinColumn(name = \"" + objectName.concat("ID") + "\", referencedColumnName = \"" + getReferences().concat("ID") + "\", insertable = true)";
+                }
             } else {
-                column += "@Column(updatable = false)";
+                fieldAnnotation += "@Id\n";
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+                if (getDataType().equalsIgnoreCase("String")) {
+                    fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
+                    column += "@Column(length = " + getSize() + ", updatable = false)";
+                } else {
+                    column += "@Column(updatable = false)";
+                }
             }
-
+        } else if (key.get().equalsIgnoreCase(keys.Primary_Auto.name())) {
+            fieldAnnotation += "@Id\n"
+                    + "    @GeneratedValue(strategy = GenerationType.AUTO)\n"
+                    + "    @Column(updatable = false, nullable = false)\n";
         } else if (isCollection()) {
 
             if (mapping.get().isBlank()) {
@@ -558,12 +595,15 @@ public class FieldDAO {
                     + "            inverseJoinColumns = {\n"
                     + "                @JoinColumn(name = \"" + Utilities.getVariableName(getReferences()) + "ID\", nullable = false)})";
 
-        } else if (isReferance() && !isCollection()) {
+        } else if (isReferance()
+                && !isCollection()) {
             if (!nullable.get()) {
                 fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
             }
             if (enumerated.get()) {
-                fieldAnnotation += "@Enumerated\n";
+                fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
+                fieldAnnotation += "@Enumerated(EnumType.STRING)\n";
+                fieldAnnotation += "@Column(length = " + getSize() + ")";
 
             } else {
 
@@ -610,6 +650,18 @@ public class FieldDAO {
                 column += "@Column(name = \"" + variableName + "\",nullable = false)";
                 fieldAnnotation += "@NotNull(message =\"The field: " + getCaption() + " cannot be null\")\n";
             }
+        } else if (dataType.get().equalsIgnoreCase("int") || dataType.get().equalsIgnoreCase("Integer")
+                || dataType.get().equalsIgnoreCase("float") || dataType.get().equalsIgnoreCase("double")) {
+            column += "@Column(name = \"" + variableName + "\"";
+            if (!nullable.get()) {
+                column += ",nullable = false";
+                fieldAnnotation += "@NotNull(message =\"The field: " + getCaption() + " cannot be null\")\n";
+            }
+            if (getKey().equalsIgnoreCase("Unique")) {
+                column += ",unique = false";
+                fieldAnnotation += "@NotNull(message =\"The field: " + getCaption() + " cannot be null\")\n";
+            }
+            column += ")";
         } else if (dataType.get().equalsIgnoreCase("Image")) {
             fieldAnnotation += "@Lob\n";
 
@@ -628,7 +680,17 @@ public class FieldDAO {
         if (getProjectID().isBlank()) {
             project = currentProject;
         }
+
         this.commonProject = oProjectDAO.find(project.getCommonProjectID());
+        if (isPrimaryKey()) {
+            addIfNotExists(list, "import javax.validation.constraints.NotNull");
+            if (isReferance()) {
+                if (getEnumerated()) {
+                } else {
+                    addIfNotExists(list, "import javax.persistence.MapsId");
+                }
+            }
+        }
         if (isCollection()) {
             addIfNotExists(list, "import java.util." + getDataType());
             addIfNotExists(list, "import javax.persistence.CascadeType");
@@ -643,6 +705,9 @@ public class FieldDAO {
             }
             addIfNotExists(list, "import javax.persistence." + mapping.get());
 
+        } else if (isPrimaryKeyAuto()) {
+            addIfNotExists(list, "import javax.persistence.GeneratedValue");
+            addIfNotExists(list, "import javax.persistence.GenerationType");
         } else if (isReferance()) {
             if (!nullable.get()) {
                 addIfNotExists(list, "import javax.validation.constraints.NotNull");
@@ -650,6 +715,7 @@ public class FieldDAO {
             if (enumerated.get()) {
                 addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
                 addIfNotExists(list, "import javax.persistence.Enumerated");
+                addIfNotExists(list, "import javax.persistence.EnumType");
 
             } else {
 
@@ -665,10 +731,15 @@ public class FieldDAO {
                 addIfNotExists(list, "import javax.persistence.ForeignKey");
                 addIfNotExists(list, "import javax.persistence." + mapping.get());
 
-                if (project.getProjectID() != currentProject.getProjectID()) {
-                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                if (getReferences().equalsIgnoreCase("LookupData")) {
+                    if (commonProject.getProjectID() != currentProject.getProjectID()) {
+                        addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + references.get());
+                    }
+                } else {
+                    if (project.getProjectID() != currentProject.getProjectID()) {
+                        addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                    }
                 }
-
             }
         } else if (dataType.get().equalsIgnoreCase("String")) {
             addIfNotExists(list, "import javax.validation.constraints.Size");
@@ -703,16 +774,27 @@ public class FieldDAO {
             project = currentProject;
         }
         this.commonProject = oProjectDAO.find(project.getCommonProjectID());
-        
-        if(currentProject.getProjectID()!=commonProject.getProjectID() && isHelper()){
-            addIfNotExists(list, "import " + commonProject.getDBAccessPackage()+ ".IDGeneratorDA");
+
+        if (currentProject.getProjectID() != commonProject.getProjectID() && isHelper()) {
+            addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + ".IDGeneratorDA");
         }
         if (isCollection()) {
             if (isReferance()) {
                 if (enumerated.get()) {
                     addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
                 } else {
-                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                    if (getReferences().equalsIgnoreCase("LookupData")) {
+                        addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + references.get());
+                        if (currentProject.getProjectID() != commonProject.getProjectID()) {
+                            addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + "." + references.get() + "DA");
+                        }
+                    } else {
+
+                        addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                        if (currentProject.getProjectID() != project.getProjectID()) {
+                            addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + references.get() + "DA");
+                        }
+                    }
 
                 }
             }
@@ -726,7 +808,18 @@ public class FieldDAO {
                     addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
 
                 } else {
-                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                    if (getReferences().equalsIgnoreCase("LookupData")) {
+                        addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + references.get());
+                        if (currentProject.getProjectID() != commonProject.getProjectID()) {
+                            addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + "." + references.get() + "DA");
+                        }
+                    } else {
+
+                        addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                        if (currentProject.getProjectID() != project.getProjectID()) {
+                            addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + references.get() + "DA");
+                        }
+                    }
                 }
             }
         } else if (dataType.get().equalsIgnoreCase("LocalDate")) {
@@ -742,7 +835,7 @@ public class FieldDAO {
         } else if (dataType.get().equalsIgnoreCase("int") || dataType.get().equalsIgnoreCase("Integer")) {
             addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatInteger");
 
-        }else if (dataType.get().equalsIgnoreCase("Image")) {
+        } else if (dataType.get().equalsIgnoreCase("Image")) {
             addIfNotExists(list, "import javafx.scene.image.ImageView");
             addIfNotExists(list, "import " + commonProject.getUtilPackage() + ".FXUIUtils");
 
@@ -910,7 +1003,9 @@ public class FieldDAO {
         addIfNotExists(list, controlLiberay.concat(this.getControlType().name()));
         if (isCollection()) {
             addIfNotExists(list, "import java.util." + getDataType());
-            addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
+            if (!(field.getReferences().equalsIgnoreCase("LookupData") || getReferences().equalsIgnoreCase(objectName))) {
+                addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
+            }
             addIfNotExists(list, "import javafx.collections.FXCollections");
             if (makeEditableTable()) {
                 addIfNotExists(list, "import " + project.getEntityPackage() + "." + objectName);
@@ -921,11 +1016,36 @@ public class FieldDAO {
                 addIfNotExists(list, "import " + commonProject.getUtilPackage() + ".EditCell");
                 try {
                     this.getSubFieldListDAO().forEach(d -> {
+                        if ((d.getDataType().equalsIgnoreCase("float"))) {
+                            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.defortFloat");
+                        }
+                        
                         if ((d.getDataType().equalsIgnoreCase("float") || d.getDataType().equalsIgnoreCase("double"))) {
                             addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.defortNumberOptional");
                         }
+
+                        if ((d.getDataType().equalsIgnoreCase("int") || d.getDataType().equalsIgnoreCase("Integer"))) {
+                            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.getInteger");
+                        }
+                        if (d.getDataType().equalsIgnoreCase("boolean")) {
+                            addIfNotExists(list, "import javafx.beans.property.SimpleBooleanProperty");
+                            addIfNotExists(list, "import javafx.beans.value.ObservableValue");
+                            addIfNotExists(list, "import javafx.scene.control.TableCell");
+                            addIfNotExists(list, "import javafx.scene.control.cell.CheckBoxTableCell");
+                            addIfNotExists(list, "import javafx.util.Callback");
+                        }
                         if (d.isReferance() && !getEnumerated()) {
-                            addIfNotExists(list, "import " + project.getEntityPackage() + "." + d.getReferences());
+                            if (d.getReferences().equalsIgnoreCase("LookupData")) {
+                                addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + d.getReferences());
+                                addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + "." + d.getReferencesDA());
+
+                            } else {
+                                if (!(field.getReferences().equalsIgnoreCase("LookupData") || getReferences().equalsIgnoreCase(objectName))) {
+                                    addIfNotExists(list, "import " + project.getEntityPackage() + "." + d.getReferences());
+                                    addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + d.getReferencesDA());
+                                }
+                            }
+                            addIfNotExists(list, "import java.util.stream.Collectors");
                             addIfNotExists(list, "import javafx.application.Platform");
                         }
                     });
@@ -942,11 +1062,16 @@ public class FieldDAO {
 
             } else {
                 addIfNotExists(list, "import javafx.scene.control.MenuItem");
-                addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
-                addIfNotExists(list, "import  " + project.getEntityPackage() + "." + getReferences());
-                addIfNotExists(list, "import  " + project.getUtilPackage() + "." + project.getNavigationClass());
+
                 if (references.get().equalsIgnoreCase("LookupData")) {
                     addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getObjectNameClass());
+                    addIfNotExists(list, "import  " + commonProject.getEntityPackage() + "." + getReferences());
+                } else {
+                    if (!getReferences().equalsIgnoreCase(objectName)) {
+                        addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + getReferencesDA());
+                        addIfNotExists(list, "import  " + project.getEntityPackage() + "." + getReferences());
+                    }
+                    addIfNotExists(list, "import  " + project.getUtilPackage() + "." + project.getNavigationClass());
                 }
 
             }
@@ -955,7 +1080,7 @@ public class FieldDAO {
         } else if (dataType.get().equalsIgnoreCase("LocalDateTime")) {
             addIfNotExists(list, "import java.time.LocalDateTime");
         } else if (dataType.get().equalsIgnoreCase("float") || dataType.get().equalsIgnoreCase("double")) {
-            addIfNotExists(list, "import static " + project.getUtilPackage() + ".Utilities.formatNumber");
+            addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.formatNumber");
         } else if (dataType.get().equalsIgnoreCase("Image")) {
             addIfNotExists(list, "import javafx.scene.control.Button");
         }
@@ -983,26 +1108,59 @@ public class FieldDAO {
                         + "                    .get(event.getTablePosition().getRow()))\n"
                         + "                    .set" + getFieldName() + "((" + getReferences() + ")value);\n"
                         + "            " + field.getControlName() + ".refresh();\n"
-                        + "            addRow(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
+                        + "            addRowOnce(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
                         + "        });";
             } else {
                 body += getColumnName(field.getReferences()) + ".setCellFactory(EditCell." + getDataTypeWrapper() + "TableColumn());";
                 body += getColumnName(field.getReferences()) + ".setOnEditCommit(event -> {\n"
-                        + "            final " + getDataType() + " value = event.getNewValue() != null ? event.getNewValue()\n"
+                        + "final " + getDataType() + " value = event.getNewValue() != null ? event.getNewValue()\n"
                         + "                    : event.getOldValue();\n"
                         + getReferences() + " " + variableName + " = o" + getReferencesDA() + ".get" + getReferences() + "(value);\n"
                         + "            if (" + variableName + " == null) {\n"
-                        + "                Platform.runLater(()->message(\"No " + getReferences() + " with Id \"+value+\" found\"));\n"
+                        + "                Platform.runLater(() -> {\n"
+                        + "                    message(\"No Item with Id \" + value + \" found\");\n"
+                        + "                    " + field.getControlName() + ".getItems().set(event.getTablePosition().getRow(), new " + field.getReferencesDA() + "());\n"
+                        + "                    " + field.getControlName() + ".refresh();\n"
+                        + "                });\n"
                         + "                return;\n"
-                        + "            }"
+                        + "            }\n"
+                        + "\n"
+                        + "            if (" + field.getControlName() + ".getItems()\n"
+                        + "                    .parallelStream()\n"
+                        + "                    .filter((p) -> p.get" + getFieldName() + "ID() != null)\n"
+                        + "                    .filter(p -> p.get" + getFieldName() + "ID().equals(value))\n"
+                        + "                    .collect(Collectors.toList())\n"
+                        + "                    .size() > 1) {\n"
+                        + "                Platform.runLater(() -> {\n"
+                        + "                    message(\"" + getCaption() + " : \" + " + variableName + ".getDisplayKey() + \" is already selected\");\n"
+                        + "                    " + field.getControlName() + ".getItems().set(event.getTablePosition().getRow(), new " + field.getReferencesDA() + "());\n"
+                        + "                    " + field.getControlName() + ".refresh();\n"
+                        + "                });\n"
+                        + "                return;\n"
+                        + "\n"
+                        + "            }\n"
+                        + "            \n"
+                        + "            \n"
                         + "            ((" + field.getReferencesDA() + ") event.getTableView().getItems()\n"
                         + "                    .get(event.getTablePosition().getRow()))\n"
-                        + "                    .set" + getFieldName() + "(" + variableName + ");\n"
+                        + "                    .set" + getReferences() + "(" + variableName + ");\n"
                         + "            " + field.getControlName() + ".refresh();\n"
-                        + "            addRow(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
+                        + "            addRowOnce(" + field.getControlName() + ", new " + field.getReferencesDA() + "());\n"
                         + "        });";
+
             }
-        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")) {
+        } else if (type.equalsIgnoreCase("float")) {
+            body += getColumnName(field.getReferences()) + ".setCellFactory(EditCell.StringTableColumn());";
+            body += getColumnName(field.getReferences()) + ".setOnEditCommit(event -> {\n"
+                    + "            final String value = event.getNewValue() != null ? event.getNewValue()\n"
+                    + "                    : event.getOldValue();\n"
+                    + "            ((" + field.getReferencesDA() + ") event.getTableView().getItems()\n"
+                    + "                    .get(event.getTablePosition().getRow()))\n"
+                    + "                    .set" + getFieldName() + "(defortFloat(value));\n"
+                    + "            " + field.getControlName() + ".refresh();\n"
+                    + "            addRowOnce(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
+                    + "        });";
+        } else if (type.equalsIgnoreCase("double")) {
             body += getColumnName(field.getReferences()) + ".setCellFactory(EditCell.StringTableColumn());";
             body += getColumnName(field.getReferences()) + ".setOnEditCommit(event -> {\n"
                     + "            final String value = event.getNewValue() != null ? event.getNewValue()\n"
@@ -1011,7 +1169,18 @@ public class FieldDAO {
                     + "                    .get(event.getTablePosition().getRow()))\n"
                     + "                    .set" + getFieldName() + "(defortNumberOptional(value));\n"
                     + "            " + field.getControlName() + ".refresh();\n"
-                    + "            addRow(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
+                    + "            addRowOnce(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
+                    + "        });";
+        }else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
+            body += getColumnName(field.getReferences()) + ".setCellFactory(EditCell.StringTableColumn());";
+            body += getColumnName(field.getReferences()) + ".setOnEditCommit(event -> {\n"
+                    + "            final String value = event.getNewValue() != null ? event.getNewValue()\n"
+                    + "                    : event.getOldValue();\n"
+                    + "            ((" + field.getReferencesDA() + ") event.getTableView().getItems()\n"
+                    + "                    .get(event.getTablePosition().getRow()))\n"
+                    + "                    .set" + getFieldName() + "(getInt(value));\n"
+                    + "            " + field.getControlName() + ".refresh();\n"
+                    + "            addRowOnce(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
                     + "        });";
         } else {
             body += getColumnName(field.getReferences()) + ".setCellFactory(EditCell." + getDataTypeWrapper() + "TableColumn());";
@@ -1022,7 +1191,7 @@ public class FieldDAO {
                     + "                    .get(event.getTablePosition().getRow()))\n"
                     + "                    .set" + getFieldName() + "(value);\n"
                     + "            " + field.getControlName() + ".refresh();\n"
-                    + "            addRow(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
+                    + "            addRowOnce(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
                     + "        });";
         }
 
@@ -1158,7 +1327,8 @@ public class FieldDAO {
         if (getDataType().equalsIgnoreCase("float") || getDataType().equalsIgnoreCase("double")) {
             propertInitialised += "this." + displayVariableName + ".set(formatNumber(" + objectVariableName + "." + getCall() + "));\n";
 
-        }if (getDataType().equalsIgnoreCase("int") || getDataType().equalsIgnoreCase("Integer")) {
+        }
+        if (getDataType().equalsIgnoreCase("int") || getDataType().equalsIgnoreCase("Integer")) {
             propertInitialised += "this." + displayVariableName + ".set(formatInteger(" + objectVariableName + "." + getCall() + "));\n";
 
         } else if (dataType.get().equalsIgnoreCase("Date") || dataType.get().equalsIgnoreCase("LocalDate")) {
@@ -1247,7 +1417,7 @@ public class FieldDAO {
     }
 
     public String makeUIFXMLEditLine(String id, int rowIndex, int columnIndex) {
-        if (isPrimaryKey()) {
+        if (isPrimaryKey() || isPrimaryKeyAuto()) {
             return makePrimaryKeyControl(id, rowIndex, columnIndex);
         }
         if (isHelper()) {
@@ -1274,7 +1444,7 @@ public class FieldDAO {
                     line += ">\n<contextMenu>\n"
                             + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
                             + " <items>\n"
-                            + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getCaption()+ "\" />\n"
+                            + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getCaption() + "\" />\n"
                             + "   </items>\n"
                             + "</ContextMenu>\n"
                             + " </contextMenu>\n"
@@ -1342,7 +1512,7 @@ public class FieldDAO {
                         + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
                         + " <items>\n"
                         + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiLoad\" id = \"" + id + "\" text=\"Load\" />"
-                        + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getCaption()+ "\" />\n"
+                        + "<MenuItem mnemonicParsing=\"false\" fx:id =\"cmiSelect" + getFieldName() + "\" id = \"" + id + "\" text=\"Select " + getCaption() + "\" />\n"
                         + "   </items>\n"
                         + "</ContextMenu>\n"
                         + " </contextMenu>\n"
@@ -1425,6 +1595,8 @@ public class FieldDAO {
             return "formatInteger(" + getControlName() + ");\n";
         } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")) {
             return "formatValue(" + getControlName() + ");\n";
+        } else if (type.equalsIgnoreCase("LocalDate") || type.equalsIgnoreCase("LocalDateTime")) {
+            return "formatDatePicker(" + getControlName() + ");\n";
         } else {
             return "";
         }
@@ -1529,9 +1701,20 @@ public class FieldDAO {
         return tableColumn;
     }
 
-    public String makeLoadCollections() {
+    public String makeLoadCollections(Project currentProject) {
         if (!makeEditableTable()) {
             return "";
+        }
+
+        if (getProjectID().isBlank()) {
+            project = currentProject;
+        }
+        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
+        String mainClass;
+        if (getReferences().equalsIgnoreCase("LookupData")) {
+            mainClass = commonProject.getNavigationClass() + ".MAIN_CLASS";
+        } else {
+            mainClass = project.getNavigationClass() + ".MAIN_CLASS";
         }
 
         return " private void load" + getFieldName() + "() {\n"
@@ -1540,7 +1723,7 @@ public class FieldDAO {
                 + "            if (selectedItems.isEmpty() || selectedItems.size() > 1) {\n"
                 + "                return;\n"
                 + "            }\n"
-                + "            " + getReferencesDA() + " " + getVariableName() + "DA = (" + getReferencesDA() + ") getSelectedItem(new " + getReferencesDA() + "(), \"" + getReferences() + "\", \"" + getCaption() + "\", 400, 450, " + getControlName() + ", false);\n"
+                + "            " + getReferencesDA() + " " + getVariableName() + "DA = (" + getReferencesDA() + ") getSelectedItem(" + mainClass + ", new " + getReferencesDA() + "(), \"" + getReferences() + "\", \"" + getCaption() + "\", 400, 450, " + getControlName() + ", false);\n"
                 + "\n"
                 + "            if (" + getVariableName() + "DA == null) {\n"
                 + "                return;\n"
@@ -1553,7 +1736,8 @@ public class FieldDAO {
                 + "            final TablePosition<" + getReferencesDA() + ", String> focusedCell = " + getControlName() + "\n"
                 + "                    .focusModelProperty().get().focusedCellProperty().get();\n"
                 + "            " + getControlName() + ".getItems().set(focusedCell.getRow(), " + getVariableName() + "DA);\n"
-                + "            " + getControlName() + ".edit(focusedCell.getRow(), focusedCell.getTableColumn());\n"
+                + "            " + getControlName() + ".refresh();\n"
+                + "            addRow(" + getControlName() + ", new " + getReferencesDA() + "());"
                 + "\n"
                 + "        } catch (Exception e) {\n"
                 + "            errorMessage(e);\n"

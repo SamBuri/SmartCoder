@@ -19,19 +19,39 @@
     "menuUIFile": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\src\\main\\resources\\com\\saburi\\common\\main\\MainScene.css",
     "sQLFile": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Common\\Scripts\\InsertDefaultData.sql"
   },
-  {
+{
     "projectID": 2,
-    "projectName": "Schoolsoft",
+    "projectName": "Finance",
+    "commonProjectID": 1,
+    "entityPackage": "com.saburi.finance.entities",
+    "dBAccessPackage": "com.saburi.finance.dbaccess",
+    "contollerPackage": "com.saburi.finance.controllers",
+    "utilPackage": "com.saburi.finance.utils",
+    "enumClass": "FinanceEnums",
+    "objectNameClass": "FinanceObjectNames",
+    "navigationClass": "FinanceNavigate",
+    "entityFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Finance\\src\\main\\java\\com\\saburi\\finance\\entities",
+    "dBAcessFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Finance\\src\\main\\java\\com\\saburi\\finance\\dbaccess",
+    "controllerFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Finance\\src\\main\\java\\com\\saburi\\finance\\controllers",
+    "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\Finance\\src\\main\\resources\\com\\saburi\\finance\\main",
+    "menuControllerFile": "F",
+    "searchTreeFile": "F",
+    "menuUIFile": "F",
+    "sQLFile": "F"
+  },
+  {
+    "projectID": 3,
+    "projectName": "SchoolSoft",
     "commonProjectID": 1,
     "entityPackage": "com.saburi.schoolsoft.entities",
-    "dBAccessPackage": "com.saburi.schoolsoft.dbaccesses",
+    "dBAccessPackage": "com.saburi.schoolsoft.dbaccess",
     "contollerPackage": "com.saburi.schoolsoft.controllers",
     "utilPackage": "com.saburi.schoolsoft.utils",
-    "enumClass": "Enum",
+    "enumClass": "Enums",
     "objectNameClass": "ObjectNames",
     "navigationClass": "Navigate",
     "entityFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\java\\com\\saburi\\schoolsoft\\entities",
-    "dBAcessFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\java\\com\\saburi\\schoolsoft\\dbaccesses",
+    "dBAcessFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\java\\com\\saburi\\schoolsoft\\dbaccess",
     "controllerFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\java\\com\\saburi\\schoolsoft\\controllers",
     "resourceFolder": "C:\\Users\\Hp\\Documents\\NetBeansProjects\\SchoolSoft\\src\\main\\resources\\com\\saburi\\schoolsoft\\main",
     "menuControllerFile": "c",
@@ -40,7 +60,7 @@
     "sQLFile": "c"
   },
   {
-    "projectID": 3,
+    "projectID": 4,
     "projectName": "Admin Panel",
     "commonProjectID": 1,
     "entityPackage": "com.saburi.adminpanel.entities",
@@ -59,4 +79,5 @@
     "menuUIFile": "c",
     "sQLFile": "c"
   }
+  
 ]

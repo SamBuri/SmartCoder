@@ -36,6 +36,7 @@ import javafx.scene.control.TextField;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import javafx.scene.input.KeyCode;
+import javafx.scene.layout.Region;
 import javafx.stage.DirectoryChooser;
 import javafx.stage.FileChooser;
 import javafx.stage.Stage;
@@ -74,6 +75,7 @@ public class FXUIUtils {
             String path = file.getPath();
             textField.setText(path);
         } catch (Exception e) {
+            errorMessage(e);
         }
     }
 
@@ -88,6 +90,7 @@ public class FXUIUtils {
             String path = file.getPath();
             textField.setText(path);
         } catch (Exception e) {
+            errorMessage(e);
         }
     }
 
@@ -102,6 +105,7 @@ public class FXUIUtils {
             String path = file.getAbsolutePath();
             textField.setText(path);
         } catch (Exception e) {
+            errorMessage(e);
         }
     }
 
@@ -116,6 +120,7 @@ public class FXUIUtils {
             String path = file.getAbsolutePath();
             textField.setText(path);
         } catch (Exception e) {
+            errorMessage(e);
         }
     }
 
@@ -137,6 +142,7 @@ public class FXUIUtils {
                 }
                
             } catch (Exception e) {
+                errorMessage(e);
             }
         });
 
@@ -160,6 +166,7 @@ public class FXUIUtils {
                 }
                
             } catch (Exception e) {
+                errorMessage(e);
             }
         });
 
@@ -168,6 +175,8 @@ public class FXUIUtils {
     public static void errorMessage(Exception e) {
         Alert alert = new Alert(Alert.AlertType.ERROR, e.getMessage(), ButtonType.OK);
         alert.setTitle("Error:");
+        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         alert.show();
         e.printStackTrace();
 
@@ -175,6 +184,8 @@ public class FXUIUtils {
 
     public static void message(Object message) {
         Alert alert = new Alert(Alert.AlertType.INFORMATION, message.toString(), ButtonType.OK);
+        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         alert.show();
     }
 
@@ -183,6 +194,8 @@ public class FXUIUtils {
         alert.setTitle(title);
         alert.setHeaderText(headerText);
         alert.setContentText(message);
+        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         return alert.showAndWait();
     }
 
@@ -191,6 +204,8 @@ public class FXUIUtils {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         return alert.showAndWait();
     }
 
@@ -199,6 +214,8 @@ public class FXUIUtils {
         alert.setTitle(title);
         alert.setHeaderText(headerText);
         alert.setContentText(message);
+        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         return alert.showAndWait().get() == ButtonType.OK;
     }
 
@@ -207,6 +224,8 @@ public class FXUIUtils {
         alert.setTitle(title);
         alert.setHeaderText(null);
         alert.setContentText(message);
+        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+        alert.setResizable(true);
         return alert.showAndWait().get() == ButtonType.OK;
     }
 

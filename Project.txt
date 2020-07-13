@@ -1,8 +1,0 @@
-ProjectID, Project ID, int
-ProjectName, Project Name, String
-ParentProjectID, Parent Project ID, int
-BaseDir,Base Dir, String
-EntityPackage, Entity Package, String
-DBAccessPackage, DB Access Package, String
-ContollerPackage, Controller Package, String
-UtilPackage, Util Package, String

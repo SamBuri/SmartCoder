@@ -28,7 +28,7 @@ public class CodeGenerator {
         try {
 
             FilteredList<FieldDAO> primaryKeyList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
-            primaryKeyList.setPredicate(FieldPredicates.isPrimaryKey());
+            primaryKeyList.setPredicate(FieldPredicates.isPrimaryKey().or(FieldPredicates.isPrimaryKeyAuto()));
 
             if (fields.isEmpty()) {
                 throw new Exception("Must include atleast one item to continue");
@@ -38,6 +38,13 @@ public class CodeGenerator {
             }
             if (primaryKeyList.size() > 1) {
                 throw new Exception("Composite primary key is not allowed. Please select a primary key");
+            }
+            
+            
+            for (FieldDAO pk: primaryKeyList){
+                if(pk.isPrimaryKeyAuto()&& !(pk.getDataType().toLowerCase().contains("int"))){
+                throw new Exception("Un suppported data type" + pk.getDataType() + " auto generated Id. Please use int instead");
+                }
             }
 
             FilteredList<FieldDAO> displayList = new FilteredList<>(FXCollections.observableList(fields), e -> true);

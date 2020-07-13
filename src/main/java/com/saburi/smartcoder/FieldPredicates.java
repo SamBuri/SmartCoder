@@ -24,6 +24,10 @@ public class FieldPredicates {
      return (p) -> p.isPrimaryKey();
 
     }
+    public static Predicate<FieldDAO> isPrimaryKeyAuto(){
+     return (p) -> p.isPrimaryKeyAuto();
+
+    }
     
     public static Predicate<FieldDAO> isIDGenerator(){
      return (p) -> p.isIDGenerator();

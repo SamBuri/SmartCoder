@@ -11,6 +11,7 @@ import com.saburi.model.Project;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
+import static com.saburi.utils.Utilities.makeMethod;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -29,6 +30,7 @@ public class Entity extends CodeGenerator {
     String objectNameEdit;
     String objectNameView;
     String primaryKeyVariableName;
+    FieldDAO primaryKeyFied;
     String objectVariableName;
     private final ProjectDAO oProjectDAO = new ProjectDAO();
 
@@ -40,7 +42,8 @@ public class Entity extends CodeGenerator {
         this.objectNameViewController = objectName.concat("ViewController");
         this.objectNameEdit = objectName.concat("Edit");
         this.objectNameView = objectName.concat("View");
-        this.primaryKeyVariableName = Utilities.getPrimaryKey(fields).getVariableName();
+        primaryKeyFied = Utilities.getPrimaryKey(fields);
+        this.primaryKeyVariableName = primaryKeyFied.getVariableName();
         this.objectVariableName = Utilities.getVariableName(objectName);
     }
 
@@ -52,6 +55,12 @@ public class Entity extends CodeGenerator {
                 + "import javax.persistence.Id;\n"
                 + "import org.hibernate.envers.Audited;\n"
                 + "import org.hibernate.envers.RelationTargetAuditMode;\n";
+        List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
+                .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
+        if (!uniqueGroups.isEmpty()) {
+            imp += "import javax.persistence.Table;\n"
+                    + "import javax.persistence.UniqueConstraint;\n";
+        }
         if (commonProject.getProjectID() != currentProject.getProjectID()) {
             imp += "import " + oProjectDAO.find(currentProject.getCommonProjectID()).getEntityPackage() + ".DBEntity;\n";
         }
@@ -69,8 +78,14 @@ public class Entity extends CodeGenerator {
     public String makeAnnotedFields() {
         String annotedFields = "";
         for (FieldDAO field : this.fields) {
+            if (field.isReferance() && field.isPrimaryKey()) {
+                annotedFields += "@Id\n"
+                        + "    @Column(length = " + field.getSize() + ", updatable = false)";
+                annotedFields += "private String" + objectName.concat("ID");
+            }
             annotedFields += field.fiedAnnotations(objectName, primaryKeyVariableName);
             annotedFields += "private " + field.getDeclaration(true, true);
+
         }
         return annotedFields;
     }
@@ -115,7 +130,7 @@ public class Entity extends CodeGenerator {
 
         String primaryKey = "";
         for (FieldDAO field : fields) {
-            if (field.getKey().equalsIgnoreCase(Enums.keys.Primary.name())) {
+            if (field.getKey().equalsIgnoreCase(Enums.keys.Primary.name()) || field.getKey().equalsIgnoreCase(Enums.keys.Primary_Auto.name())) {
                 primaryKey = field.getVariableName();
             }
         }
@@ -140,8 +155,10 @@ public class Entity extends CodeGenerator {
         List<FieldDAO> displayKeys = fields.stream().filter((p) -> p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Display.name())).collect(Collectors.toList());
 
         for (FieldDAO field : displayKeys) {
-            if (field.isReferance()) {
+            if (field.isReferance() && !field.getEnumerated()) {
                 displayVariableName = field.getVariableName().concat(".getDisplayKey()");
+            } else if (field.isReferance() && field.getEnumerated()) {
+                displayVariableName = field.getVariableName().concat(".name()");
             } else {
                 displayVariableName = field.getVariableName();
             }
@@ -168,25 +185,54 @@ public class Entity extends CodeGenerator {
     }
 
     public String otherMethods() {
-        String objectEquals = " @Override\n"
-                + "    public boolean equals(Object o) {\n"
-                + "        if (this == o) {\n"
+        List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
+                .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
+
+        String body = "if (this == o) {\n"
                 + "            return true;\n"
                 + "        }\n"
-                + "        if (!(o instanceof " + this.objectName + ")) {\n"
+                + "        if (o == null) {\n"
                 + "            return false;\n"
                 + "        }\n"
-                + "\n"
-                + "        " + this.objectName + " " + objectVariableName + " = (" + objectName + ") o;\n"
-                + "\n"
-                + "        return this.getId().equals(" + objectVariableName + ".getId());\n"
-                + "    }\n";
+                + "        if (getClass() != o.getClass()) {\n"
+                + "            return false;\n"
+                + "        }\n"
+                + "        final " + this.objectName + " " + objectVariableName + " = (" + this.objectName + ") o;";
+        if (primaryKeyFied.isPrimaryKeyAuto() && !uniqueGroups.isEmpty()) {
+            int last = uniqueGroups.size() - 1;
+            List<FieldDAO> middleUniqueFileds = new ArrayList<>(uniqueGroups);
+            middleUniqueFileds.remove(last);
+            body = middleUniqueFileds.stream().map((fieldDAO) -> " if (!Objects.equals(this." + fieldDAO.getVariableName() + ", " + objectVariableName + "." + fieldDAO.getVariableName() + ")) {\n"
+                    + "            return false;\n"
+                    + "        }").reduce(body, String::concat);
+            FieldDAO fieldDAO = uniqueGroups.get(last);
+            body += "return Objects.equals(this." + fieldDAO.getVariableName() + ", " + objectVariableName + "." + fieldDAO.getVariableName() + ");";
 
-        String objectHashCode = "    @Override\n"
-                + "    public int hashCode() {\n"
-                + "        return Objects.hashCode(this." + primaryKeyVariableName + ");\n"
-                + "\n"
-                + "    }";
+        } else {
+            body += " if (this.getId() == null || " + objectVariableName + ".getId() == null) {\n"
+                    + "            return false;\n"
+                    + "        }\nreturn this.getId().equals(" + objectVariableName + ".getId());\n";
+
+        }
+        String objectEquals = makeMethod("@Override\npublic", "boolean", "equals", "Object o", body);
+
+        String hashBody = "";
+        if (primaryKeyFied.isPrimaryKeyAuto() && !uniqueGroups.isEmpty()) {
+            int last = uniqueGroups.size() - 1;
+            List<FieldDAO> middleUniqueFileds = new ArrayList<>(uniqueGroups);
+            middleUniqueFileds.remove(last);
+            hashBody = middleUniqueFileds.stream().map((fieldDAO) -> " Objects.hashCode(this." + fieldDAO.getVariableName() + ")+")
+                    .reduce(hashBody, String::concat);
+            FieldDAO fieldDAO = uniqueGroups.get(last);
+            hashBody += "Objects.hashCode(this." + fieldDAO.getVariableName() + ");";
+            hashBody = "return " + hashBody;
+
+        } else {
+            hashBody = " return Objects.hashCode(this." + primaryKeyVariableName + ");\n";
+
+        }
+
+        String objectHashCode = makeMethod("@Override\npublic", "int", "hashCode", "", hashBody);
 
         return objectEquals + objectHashCode;
 
@@ -194,11 +240,29 @@ public class Entity extends CodeGenerator {
 
     public String makeClass(Project currentProject) throws Exception {
         validate(fields);
+        List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
+                .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
+        String tableAnnotation = "";
+        if (!uniqueGroups.isEmpty()) {
+            FieldDAO fdao = uniqueGroups.get(0);
+            String columnNames = "\"" + fdao.getDBColumnName() + "\"";
+            String constraintName = "uq" + fdao.getFieldName();
+            for (int i = 1; i < uniqueGroups.size(); i++) {
+                FieldDAO fieldDAO = uniqueGroups.get(i);
+                columnNames += "," + "\"" + fieldDAO.getDBColumnName() + "\"";
+                constraintName += fieldDAO.getFieldName();
+            }
+
+            tableAnnotation = "\n@Table(\n"
+                    + "        uniqueConstraints = @UniqueConstraint(columnNames = {" + columnNames + "}, "
+                    + "name = \"" + constraintName + "\")\n"
+                    + ")";
+        }
         String constructor = new JavaClass(objectName).makeNoArgConstructor().concat("\n") + this.makeConstructor();
         String methods = otherMethods() + this.overriddenID() + this.overriddenDisplayKey();
         JavaClass javaClass = new JavaClass(currentProject.getEntityPackage(), objectName, this.makeEntityImports(currentProject),
                 this.makeAnnotedFields(), constructor, this.makeProperties(), methods);
-        return javaClass.makeClass("DBEntity", "@Entity\n@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)");
+        return javaClass.makeClass("DBEntity", "@Entity\n@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)" + tableAnnotation);
     }
 
 }

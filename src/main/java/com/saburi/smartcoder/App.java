@@ -19,12 +19,12 @@ public class App extends Application {
     @Override
     public void start(Stage stage) throws IOException {
         try {
-             scene = new Scene(Navigation.loadFXML("Scene"), 640, 480);
+             scene = new Scene(Navigation.loadFXML("Scene"));
              scene.getStylesheets().add(styleControls);
         stage.setScene(scene);
         stage.setTitle("Smart Coder");
         stage.setScene(scene);
-        stage.setMaximized(true);
+//        stage.setMaximized(true);
 //        stage.resizableProperty().setValue(false);
         stage.setOnCloseRequest(e -> System.exit(0));
         stage.show();
