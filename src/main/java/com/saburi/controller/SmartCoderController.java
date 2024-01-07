@@ -13,25 +13,44 @@ import static com.saburi.utils.FXUIUtils.errorMessage;
 import static com.saburi.utils.FXUIUtils.message;
 import static com.saburi.utils.FXUIUtils.setTableEditable;
 import static com.saburi.utils.Utilities.makeDirectory;
-import static com.saburi.utils.Utilities.openFile;
 import static com.saburi.utils.Utilities.writeFile;
 import com.saburi.model.Field;
 import com.saburi.model.Project;
+import com.saburi.smartcoder.springboot.ChangeLog;
 import com.saburi.smartcoder.CodeGenerator;
-import com.saburi.smartcoder.Controller;
-import com.saburi.smartcoder.DBAcess;
+import com.saburi.smartcoder.javafx.Controller;
+import com.saburi.smartcoder.springboot.ControllerTest;
+import com.saburi.smartcoder.javafx.DBAcess;
 import com.saburi.smartcoder.Entity;
-import com.saburi.smartcoder.GenMenu;
-import com.saburi.smartcoder.GenViewController;
-import com.saburi.smartcoder.SQLFile;
-import com.saburi.smartcoder.UIEdit;
-import com.saburi.smartcoder.UIView;
+import com.saburi.smartcoder.javafx.GenMenu;
+import com.saburi.smartcoder.javafx.GenViewController;
+import com.saburi.smartcoder.springboot.Mini;
+import com.saburi.smartcoder.springboot.Repository;
+import com.saburi.smartcoder.springboot.Request;
+import com.saburi.smartcoder.springboot.Response;
+import com.saburi.smartcoder.javafx.SQLFile;
+import com.saburi.smartcoder.springboot.Service;
+import com.saburi.smartcoder.springboot.ServiceTest;
+import com.saburi.smartcoder.vuejs.Store;
+import com.saburi.smartcoder.javafx.UIEdit;
+import com.saburi.smartcoder.javafx.UIView;
+import com.saburi.smartcoder.vuejs.Vue;
+import com.saburi.smartcoder.vuejs.VueModel;
+import com.saburi.smartcoder.vuejs.VueNav;
+import com.saburi.smartcoder.springboot.WebController;
+import com.saburi.smartcoder.vuejs.Search;
 import com.saburi.utils.EditCell;
 import com.saburi.utils.Enums;
+import com.saburi.utils.Enums.DesktopFiles;
+import com.saburi.utils.Enums.EntityTypes;
 import com.saburi.utils.Enums.MenuTypes;
 import com.saburi.utils.Enums.RelationMappping;
 import com.saburi.utils.Enums.Saburikeys;
 import com.saburi.utils.Enums.keys;
+import com.saburi.utils.Enums.ProjectTypes;
+import com.saburi.utils.Enums.ServiceTypes;
+import com.saburi.utils.Enums.VueFiles;
+import com.saburi.utils.Enums.WebFiles;
 import static com.saburi.utils.FXUIUtils.loadProjects;
 import static com.saburi.utils.FXUIUtils.warningOK;
 import com.saburi.utils.Utilities;
@@ -40,12 +59,9 @@ import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 import javafx.beans.binding.Bindings;
 import javafx.beans.property.SimpleBooleanProperty;
@@ -68,7 +84,8 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import javafx.util.Pair;
+import java.awt.Desktop;
+import java.util.ArrayList;
 
 /**
  *
@@ -81,29 +98,22 @@ public class SmartCoderController implements Initializable {
     }
 
     private final ObservableList dataTypes = FXCollections.observableArrayList(
-            "String", "List", "Set", "Image", "LocalDate", "LocalDateTime", "LocalTime", "boolean", "int", "float", "double"
+            "String", "List", "Set", "Image", "LocalDate", "LocalDateTime", "LocalTime", "boolean", "int", "long", "float", "double", "File"
     );
 
-//    private final ObservableList enumClasses = FXCollections.observableArrayList("CommonEnums", "Enums");
     private final ObservableList mapppings = FXCollections.observableArrayList(RelationMappping.OneToOne.name(),
             RelationMappping.OneToMany.name(), RelationMappping.ManyToOne.name(), RelationMappping.ManyToMany.name());
 
-    private final ObservableList keyses = FXCollections.observableArrayList(keys.values());
-
-    private final ObservableList saburiKeys = FXCollections.observableArrayList(Saburikeys.ID_Helper.name(),
-            Saburikeys.ID_Generator.name(), Saburikeys.Display.name(), Saburikeys.None.name());
-
-    private final ObservableList togenerateFiles = FXCollections.observableArrayList(
-            "", "Entity", "DBAcess", "Controller", "View Controller", "FXML", "FXML View", "Menu", "SQL"
-    );
-
+//    private final ObservableList keyses = FXCollections.observableArrayList(keys.values());
     private final ObservableList menuTypes = FXCollections.observableArrayList(Enums.MenuTypes.values());
 
     @FXML
     TableView<FieldDAO> tblSaburiTools;
     @FXML
     private TableColumn<FieldDAO, String> tbcFieldName, tbcCaption, tbcDataType, tbcReferences,
-            tbcSaburiKey, tbcMapping, tbcSubFields, tbcProjectID;
+            tbcMapping, tbcSubFields, tbcProjectName, tbcModuleName;
+    @FXML
+    private TableColumn<FieldDAO, Saburikeys> tbcSaburiKey;
     @FXML
     private TableColumn<FieldDAO, keys> tbcKey;
     @FXML
@@ -113,10 +123,10 @@ public class SmartCoderController implements Initializable {
     private TableColumn<FieldDAO, Boolean> tbcNullable;
 
     @FXML
-    private TableColumn<FieldDAO, Boolean> tbcEnumerated;
+    private TableColumn<FieldDAO, Boolean> tbcEnumerated, tbcExpose, tbcSelect;
 
     @FXML
-    private TextField txtFileName, txtObjectName, txtObjectCaption, txtOutputDirectory, txtParentMenuID;
+    private TextField txtFileName, txtObjectName, txtObjectCaption, txtOutputDirectory, txtParentMenuID, txtModule;
     @FXML
 
     private Button btnBrowse, btnOutputDirectory;
@@ -128,18 +138,25 @@ public class SmartCoderController implements Initializable {
     private Button btnImport, btnSave;
     @FXML
     private ComboBox cboFiles;
+
+    @FXML
+    private ComboBox<ProjectTypes> cboProjectType;
     @FXML
     private ComboBox<Project> cboProject;
     @FXML
     private ComboBox<MenuTypes> cboMenuType;
     @FXML
     private Label lblRowCount;
+    @FXML
+    private ComboBox<EntityTypes> cboEntityType;
+    @FXML
+    private ComboBox<ServiceTypes> cboServiceType;
 
     @FXML
     private CheckBox chkOpenFile, chkSaveToProject, chkGenerateMenus, chkGenerateViewUI;
     private final ProjectDAO oProjectDAO = new ProjectDAO();
-    private final FieldDAO oFieldDAO = new FieldDAO();
-    private List<String> projectIds;
+    private List<Project> projects = new ArrayList<>();
+    private List<String> projectNames;
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -147,7 +164,9 @@ public class SmartCoderController implements Initializable {
         try {
             btnBrowse.setOnAction(e -> {
                 String fileName = (browse(txtFileName));
-//                String tokens = fileName.substring(0, fileName.length() - 4);
+                if (Utilities.isNullOrEmpty(fileName)) {
+                    return;
+                }
                 String objectName = fileName.substring(0, fileName.length() - 4);
                 txtObjectName.setText(objectName);
                 txtObjectCaption.setText(objectName);
@@ -173,13 +192,19 @@ public class SmartCoderController implements Initializable {
                     String contents = "";
                     int index = 0;
                     int size = tblSaburiTools.getItems().size();
-                    List<FieldDAO> fieldDAOs = tblSaburiTools.getItems();
-                    fieldDAOs.removeIf(p -> p.getFieldName().isBlank());
+                    List<FieldDAO> fieldDAOs = tblSaburiTools.getItems().filtered(p -> !p.getFieldName().isBlank());
+
                     for (FieldDAO field : fieldDAOs) {
                         index++;
                         contents += field.toString();
                         if (index < size) {
                             contents += "\n";
+                        }
+                    }
+                    File f = new File(path);
+                    if (f.exists()) {
+                        if (!warningOK("Overwrite", "You are about to overwrite a file: " + f.getName() + " are you sure you want to continue")) {
+                            return;
                         }
                     }
                     writeFile(path, contents);
@@ -190,21 +215,90 @@ public class SmartCoderController implements Initializable {
 
             });
 
+            String dir = System.getProperty("user.home").concat("/".concat("Desktop")).concat("/").concat("SmartCoder");
+            txtOutputDirectory.setText(dir);
+
             btnOutputDirectory.setOnAction(e -> FXUIUtils.browseDirectory(txtOutputDirectory));
             btnGenerate.setOnAction(e -> this.generateCode());
             btnClose.setOnAction(e -> this.close());
 
             this.tblSaburiTools.setColumnResizePolicy(TableView.CONSTRAINED_RESIZE_POLICY);
-            cboFiles.setItems(togenerateFiles);
+//            cboFiles.setItems(togenerateFiles);
             cboMenuType.setItems(menuTypes);
             cboMenuType.setValue(MenuTypes.SplitButton);
+
+            cboProjectType.setItems(FXCollections.observableArrayList(ProjectTypes.values()));
+
             txtParentMenuID.editableProperty().bindBidirectional(chkGenerateMenus.selectedProperty());
-            loadProjects(oProjectDAO.read(), cboProject);
+
+            cboProjectType.setOnAction(e -> {
+                ProjectTypes projectType = cboProjectType.getValue();
+                switch (projectType) {
+                    case Springboot_API ->
+                        cboFiles.setItems(FXCollections.observableArrayList(WebFiles.values()));
+
+                    case Vue ->
+                        cboFiles.setItems(FXCollections.observableArrayList(VueFiles.values()));
+
+                    case Desktop -> {
+                        cboFiles.setItems(FXCollections.observableArrayList(DesktopFiles.values()));
+                        cboEntityType.setValue(EntityTypes.DB_Entity);
+                    }
+
+                    default ->
+                        cboFiles.getItems().clear();
+                }
+
+                showProjectTypeControls(cboProjectType.getValue().equals(ProjectTypes.Springboot_API));
+                txtModule.setVisible(cboProjectType.getValue().equals(ProjectTypes.Vue));
+                hideTableColumns(cboProjectType.getValue().equals(ProjectTypes.Vue));
+
+                try {
+                    projects = oProjectDAO.read().stream()
+                            .filter((p) -> p.getProjectType().equals(projectType))
+                            .collect(Collectors.toList());
+
+                    loadProjects(projects, cboProject);
+                    projectNames = projects.stream().map(Project::getDisplay).collect(Collectors.toList());
+                    projectNames.add(0, "");
+                    tbcProjectName.setCellFactory(ComboBoxTableCell.forTableColumn(FXCollections.observableList(projectNames)));
+
+                } catch (Exception ex) {
+                    errorMessage(ex);
+                }
+
+            });
+            cboEntityType.setItems(FXCollections.observableArrayList(Enums.EntityTypes.values()));
+            cboServiceType.setItems(FXCollections.observableArrayList(Enums.ServiceTypes.values()));
+            cboEntityType.setOnAction(e -> {
+                EntityTypes entityType = cboEntityType.getValue();
+                if (entityType.equals(EntityTypes.Auto_ID_Gen)) {
+                    cboServiceType.setValue(ServiceTypes.ID_Gen);
+                    cboServiceType.disableProperty().set(true);
+                } else {
+                    cboServiceType.setValue(ServiceTypes.Base);
+                    cboServiceType.disableProperty().set(false);
+                }
+
+            });
+
             initTable();
         } catch (Exception e) {
             errorMessage(e);
         }
 
+    }
+
+    private void showProjectTypeControls(boolean visible) {
+        cboEntityType.visibleProperty().set(visible);
+        cboServiceType.visibleProperty().set(visible);
+
+    }
+
+    private void hideTableColumns(boolean visible) {
+        tbcModuleName.visibleProperty().set(visible);
+        tbcSelect.visibleProperty().set(visible);
+        tbcProjectName.visibleProperty().set(!visible);
     }
 
     private void close() {
@@ -216,14 +310,6 @@ public class SmartCoderController implements Initializable {
         try {
             setTableEditable(tblSaburiTools);
 
-            final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> cellFactory = CheckBoxTableCell.forTableColumn(tbcNullable);
-            tbcNullable.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
-                TableCell<FieldDAO, Boolean> cell = cellFactory.call(param);
-                cell.setAlignment(Pos.CENTER);
-                return cell;
-            });
-            tbcNullable.setCellFactory(cellFactory);
-
             final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> enumeratedCellFactory = CheckBoxTableCell.forTableColumn(tbcEnumerated);
             tbcEnumerated.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
                 TableCell<FieldDAO, Boolean> cell = enumeratedCellFactory.call(param);
@@ -231,15 +317,6 @@ public class SmartCoderController implements Initializable {
                 return cell;
             });
             tbcEnumerated.setCellFactory(enumeratedCellFactory);
-
-            tbcNullable.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
-                FieldDAO field = param.getValue();
-                SimpleBooleanProperty p = field.getNullableProperty();
-                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
-                    field.setNullable(newValue);
-                });
-                return p;
-            });
 
             tbcEnumerated.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
                 FieldDAO field = param.getValue();
@@ -250,6 +327,58 @@ public class SmartCoderController implements Initializable {
                 });
                 return p;
             });
+
+            final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> cellFactory = CheckBoxTableCell.forTableColumn(tbcNullable);
+            tbcNullable.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
+                TableCell<FieldDAO, Boolean> cell = cellFactory.call(param);
+                cell.setAlignment(Pos.CENTER);
+                return cell;
+            });
+            tbcNullable.setCellFactory(cellFactory);
+
+            tbcNullable.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
+                FieldDAO field = param.getValue();
+                SimpleBooleanProperty p = field.getNullableProperty();
+                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    field.setNullable(newValue);
+                });
+                return p;
+            });
+
+            final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> exposeCellFactory = CheckBoxTableCell.forTableColumn(tbcExpose);
+            tbcExpose.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
+                TableCell<FieldDAO, Boolean> cell = exposeCellFactory.call(param);
+                cell.setAlignment(Pos.CENTER);
+                return cell;
+            });
+            tbcExpose.setCellFactory(exposeCellFactory);
+
+            tbcExpose.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
+                FieldDAO field = param.getValue();
+                SimpleBooleanProperty p = field.getExpose();
+                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    field.setExpose(newValue);
+                });
+                return p;
+            });
+
+            final Callback<TableColumn<FieldDAO, Boolean>, TableCell<FieldDAO, Boolean>> selectCellFactory = CheckBoxTableCell.forTableColumn(tbcSelect);
+            tbcSelect.setCellFactory((TableColumn<FieldDAO, Boolean> param) -> {
+                TableCell<FieldDAO, Boolean> cell = selectCellFactory.call(param);
+                cell.setAlignment(Pos.CENTER);
+                return cell;
+            });
+            tbcSelect.setCellFactory(selectCellFactory);
+
+            tbcSelect.setCellValueFactory((TableColumn.CellDataFeatures<FieldDAO, Boolean> param) -> {
+                FieldDAO field = param.getValue();
+                SimpleBooleanProperty p = field.getSelect();
+                p.addListener((ObservableValue<? extends Boolean> observable, Boolean oldValue, Boolean newValue) -> {
+                    field.setSelect(newValue);
+                });
+                return p;
+            });
+
             editFieldName();
             editCaption();
             editReferences();
@@ -260,16 +389,12 @@ public class SmartCoderController implements Initializable {
             editSaburiKey();
             editProjectID();
             editSize();
+            editModuleName();
             tbcDataType.setCellFactory(ComboBoxTableCell.forTableColumn(dataTypes));
-            tbcKey.setCellFactory(ComboBoxTableCell.forTableColumn(keyses));
-            tbcSaburiKey.setCellFactory(ComboBoxTableCell.forTableColumn(saburiKeys));
+            tbcKey.setCellFactory(ComboBoxTableCell.forTableColumn(keys.values()));
+            tbcSaburiKey.setCellFactory(ComboBoxTableCell.forTableColumn(Saburikeys.values()));
             tbcMapping.setCellFactory(ComboBoxTableCell.forTableColumn(mapppings));
-            projectIds = oProjectDAO.read()
-                    .stream().map(Project::getProjectIDDisplay)
-                    .collect(Collectors.toList());
-            projectIds.add(0, "");
-//             projectIds = FXCollections.observableList(projectIds);
-            tbcProjectID.setCellFactory(ComboBoxTableCell.forTableColumn(FXCollections.observableList(projectIds)));
+
             addRow(tblSaburiTools, 0);
 
         } catch (Exception e) {
@@ -281,7 +406,9 @@ public class SmartCoderController implements Initializable {
     private void loadTable() {
         try {
 
-            tblSaburiTools.setItems(FXCollections.observableList(FieldDAO.getFieldDAOs(this.readFile(txtFileName.getText(), ","))));
+            tblSaburiTools.setItems(FXCollections
+                    .observableList(FieldDAO.getFieldDAOs(
+                            this.readFile(txtFileName.getText(), ","))));
             lblRowCount.setText("" + tblSaburiTools.getItems().size() + " row(s)");
             addRow(tblSaburiTools, tblSaburiTools.getItems().size() - 1);
         } catch (Exception e) {
@@ -324,7 +451,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setFieldName(value);
+                    .setFieldName(value.trim());
             tblSaburiTools.refresh();
             lblRowCount.setText("" + (tblSaburiTools.getItems().size() - 1) + " row(s)");
             addRow(tblSaburiTools, event.getTablePosition().getRow());
@@ -341,7 +468,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setCaption(value);
+                    .setCaption(value.trim());
             tblSaburiTools.refresh();
         });
     }
@@ -355,7 +482,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setReferences(value);
+                    .setReferences(value.trim());
             tblSaburiTools.refresh();
         });
     }
@@ -367,7 +494,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setSubFields(value);
+                    .setSubFields(value.trim());
             tblSaburiTools.refresh();
         });
     }
@@ -379,7 +506,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setDataType(value);
+                    .setDataType(value.trim());
             tblSaburiTools.refresh();
         });
     }
@@ -391,7 +518,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setMapping(value);
+                    .setMapping(value.trim());
             tblSaburiTools.refresh();
         });
     }
@@ -403,7 +530,7 @@ public class SmartCoderController implements Initializable {
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setKey(value.name());
+                    .setKey(value.name().trim());
             tblSaburiTools.refresh();
         });
     }
@@ -411,23 +538,23 @@ public class SmartCoderController implements Initializable {
     private void editSaburiKey() {
 
         tbcSaburiKey.setOnEditCommit(event -> {
-            final String value = event.getNewValue() != null ? event.getNewValue()
+            final Saburikeys value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setSaburiKey(value);
+                    .setSaburiKey(value == null ? "" : value.name().trim());
             tblSaburiTools.refresh();
         });
     }
 
     private void editProjectID() {
 
-        tbcProjectID.setOnEditCommit(event -> {
+        tbcProjectName.setOnEditCommit(event -> {
             final String value = event.getNewValue() != null ? event.getNewValue()
                     : event.getOldValue();
             ((FieldDAO) event.getTableView().getItems()
                     .get(event.getTablePosition().getRow()))
-                    .setProjectID(value);
+                    .setProjectName(value.trim());
             tblSaburiTools.refresh();
         });
     }
@@ -448,8 +575,179 @@ public class SmartCoderController implements Initializable {
         }
     }
 
+    private void editModuleName() {
+        tbcModuleName.setCellFactory(EditCell.forTableColumn());
+        tbcModuleName.setOnEditCommit(event -> {
+            final String value = event.getNewValue() != null ? event.getNewValue()
+                    : event.getOldValue();
+            ((FieldDAO) event.getTableView().getItems()
+                    .get(event.getTablePosition().getRow()))
+                    .setModuleName(value.trim());
+            tblSaburiTools.refresh();
+        });
+    }
+
 //*************************************************************************************
 //*************************************************************************************
+    private String getFileExtension(String selectedFile) {
+        if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name()) || selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name())) {
+            return ".fxml";
+        }
+        if (selectedFile.equalsIgnoreCase(DesktopFiles.SQL.name()) || selectedFile.equalsIgnoreCase(DesktopFiles.Menu.name())) {
+            return ".txt";
+        }
+
+        if (selectedFile.equalsIgnoreCase(VueFiles.Model.name()) || selectedFile.equalsIgnoreCase(VueFiles.Store.name())
+                || selectedFile.equalsIgnoreCase(VueFiles.Nav.name())) {
+            return ".js";
+        }
+        if (selectedFile.equalsIgnoreCase(VueFiles.View.name())
+                ||selectedFile.equalsIgnoreCase(VueFiles.Search.name())) {
+            return ".vue";
+        }
+
+        if (selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name())) {
+            return ".xml";
+        }
+        return ".java";
+    }
+
+    private String getFileFullName(String objectName, Project project, String selectedFile) {
+        String fileName = (selectedFile.equalsIgnoreCase(DesktopFiles.Entity.name())
+                || selectedFile.equalsIgnoreCase(VueFiles.View.name()))
+                || selectedFile.equalsIgnoreCase(VueFiles.Store.name())
+                || selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name()) ? objectName
+                :selectedFile.equalsIgnoreCase(VueFiles.Search.name()) ? Utilities.toPlural(objectName)
+                : selectedFile.equalsIgnoreCase(DesktopFiles.DBAcess.name()) ? objectName.concat("DA")
+                : selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name()) ? objectName.concat("View")
+                : selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name()) ? "create_" + Utilities.toPlural(objectName).toLowerCase()
+                : objectName.concat(selectedFile.replace("-", ""));
+
+        fileName = (selectedFile.equalsIgnoreCase(VueFiles.Store.name()) ? fileName.toLowerCase() : fileName);
+        String baseFolder = getBaseFolder(selectedFile, objectName, project);
+        return baseFolder + "//" + fileName.concat(this.getFileExtension(selectedFile));
+    }
+
+    private String getBaseFolder(String selectedFile, String objectName, Project project) {
+        String outputFolder;
+        String outPutDirector = txtOutputDirectory.getText();
+        boolean saveProject = chkSaveToProject.isSelected();
+        switch (project.getProjectType()) {
+            case Desktop -> {
+                outputFolder = saveProject ? getDesktopBaseFolderName(project, selectedFile, outPutDirector) : outPutDirector;
+            }
+            case Vue -> {
+                String module = txtModule.getText();
+                String lastSection = Utilities.isNullOrEmpty(module) ? "//".concat(objectName) : "//".concat(module).concat("//").concat(objectName);
+                outputFolder = saveProject ? project.getBaseFolder().concat(lastSection) : outPutDirector;
+
+//                outputFolder = outPutDir.concat("//" + (selectedFile.equalsIgnoreCase(VueFiles.Store.name()) ? objectName.toLowerCase() : selectedFile.replace("-", "")));
+            }
+            default -> {
+                String outPutDir = saveProject ? project.getBaseFolder() : outPutDirector;
+                outputFolder = outPutDir.concat("//" + objectName);
+                if (selectedFile.equalsIgnoreCase(WebFiles.Request.name())
+                        || selectedFile.equalsIgnoreCase(WebFiles.Mini.name()) //                        || selectedFile.equalsIgnoreCase(WebFiles.Response.name())
+                        ) {
+                    outputFolder = outputFolder.concat("//").concat("dtos");
+                } else if (selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name())) {
+                    outputFolder = project.getResourceFolder().concat("//changelogs//")
+                            .concat(objectName);
+                } else if (selectedFile.endsWith("Test")) {
+                    outputFolder = project.getTestFolder().concat("//").concat(objectName);
+                }
+            }
+        }
+        outputFolder = outputFolder.toLowerCase();
+        makeDirectory(outputFolder);
+        return outputFolder;
+    }
+
+    private String getDesktopBaseFolderName(Project project, String selectedFile, String outPutDir) {
+        if (selectedFile.equalsIgnoreCase(DesktopFiles.Entity.name())) {
+            return project.getEntityFolder();
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.DBAcess.name())) {
+            return project.getDBAcessFolder();
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Controller.name())
+                || selectedFile.equalsIgnoreCase(DesktopFiles.ViewController.name())) {
+            return project.getControllerFolder();
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name())
+                || selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name())) {
+            return project.getResourceFolder();
+        } else {
+            return outPutDir;
+        }
+
+    }
+
+    private String getFileContents(String selectedFile, String objectName, String objectCaption, String moduleName,
+            Project project, List<FieldDAO> fieldDAOs, EntityTypes entiityType, ServiceTypes serviceTypes) throws Exception {
+
+        if (selectedFile.equalsIgnoreCase(DesktopFiles.Entity.name())) {
+            return new Entity(objectName, project, fieldDAOs).makeClass(project, entiityType);
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.DBAcess.name())) {
+            return new DBAcess(objectName, fieldDAOs).makeClass(project);
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Controller.name()) && project.getProjectType().equals(ProjectTypes.Desktop)) {
+            return new Controller(objectName, fieldDAOs).makeClass(project);
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name())) {
+            return new UIEdit(objectName, fieldDAOs).create(project);
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name())) {
+            return new UIView(objectName, fieldDAOs).create(project);
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.ViewController.name())) {
+            return new GenViewController(objectName).makeClass();
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Menu.name())) {
+            return GenMenu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
+        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.SQL.name())) {
+            return SQLFile.callEditAccessObject(objectName, objectCaption);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.Request.name())) {
+            return new Request(objectName, project, fieldDAOs).makeClass(project);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.Repo.name())) {
+            return new Repository(objectName, project, fieldDAOs).makeClass(project, entiityType);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.Service.name())) {
+            return new Service(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.Controller.name()) && project.getProjectType().equals(ProjectTypes.Springboot_API)) {
+            return new WebController(objectName, project, fieldDAOs, serviceTypes).makeClass(project, entiityType);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.ServiceTest.name())) {
+            return new ServiceTest(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.ControllerTest.name())) {
+            return new ControllerTest(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.Mini.name())) {
+            return new Mini(objectName, project, fieldDAOs, entiityType).makeClass();
+        } else if (selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name())) {
+            return new ChangeLog(objectName, project, fieldDAOs, entiityType).makeDocument();
+        } //          else if (selectedFile.equalsIgnoreCase(WebFiles.Response.name())) {
+        //            return new Response(objectName, project, fieldDAOs).create();}
+        else if (selectedFile.equalsIgnoreCase(VueFiles.Model.name())) {
+            return new VueModel(objectName, project, fieldDAOs).create();
+        } else if (selectedFile.equalsIgnoreCase(VueFiles.View.name())) {
+            return new Vue(objectName, moduleName, objectCaption, fieldDAOs).create();
+        } else if (selectedFile.equalsIgnoreCase(VueFiles.Store.name())) {
+            return new Store(objectName).create();
+        } else if (selectedFile.equalsIgnoreCase(VueFiles.Nav.name())) {
+            return new VueNav(objectName, objectCaption, moduleName, fieldDAOs).create();
+        }
+        
+        else if (selectedFile.equalsIgnoreCase(VueFiles.Search.name())) {
+            return new Search(objectName).create();
+        }
+
+        throw new Exception("Un recorginsed file type: " + selectedFile);
+    }
+
+    private Predicate filterFileName(String selectedFile) {
+        return (p) -> selectedFile.equalsIgnoreCase(DesktopFiles.All.name()) ? !p.toString().equalsIgnoreCase(selectedFile) : p.toString().equalsIgnoreCase(selectedFile);
+    }
+
+    private Predicate filterViewUI(boolean generateView, String selectedFile) {
+        boolean isViewFile = DesktopFiles.FXML_View.name().equalsIgnoreCase(selectedFile) || DesktopFiles.ViewController.name().equalsIgnoreCase(selectedFile);
+        return (p) -> isViewFile ? true : this.generateFXMLView(generateView, p.toString());
+    }
+
+    private boolean generateFXMLView(boolean selected, String fname) {
+        return (DesktopFiles.FXML_View.name().equalsIgnoreCase(fname)
+                || DesktopFiles.ViewController.name().equalsIgnoreCase(fname)) ? selected : true;
+    }
+
 //Generate code
     private void generateCode() {
         try {
@@ -457,6 +755,11 @@ public class SmartCoderController implements Initializable {
             String objectCaption = txtObjectCaption.getText();
             String outPutDirecory = txtOutputDirectory.getText();
             Project project = cboProject.getValue();
+            Object selectedFileo = cboFiles.getValue();
+            ProjectTypes projectType = cboProjectType.getValue();
+            EntityTypes entityTypes = cboEntityType.getValue();
+            ServiceTypes serviceTypes = cboServiceType.getValue();
+            String moduleName = txtModule.getText();
             if (project == null) {
                 message("Please select the project!");
                 return;
@@ -471,193 +774,76 @@ public class SmartCoderController implements Initializable {
                 return;
             }
 
-            List<FieldDAO> fieldDAOs = tblSaburiTools.getItems();
-            fieldDAOs.removeIf(p -> p.getFieldName().isBlank());
-
-            CodeGenerator codeGenerator = new CodeGenerator();
-            codeGenerator.validate(fieldDAOs);
-
-            String entityFolder = outPutDirecory + "\\Entities";
-            String controllerFolder = outPutDirecory + "\\Controllers";
-            String fxmlFolder = outPutDirecory + "\\UIs";
-
-            String dbAccessFolder = outPutDirecory + "\\DBAccess";
-            String menusFolder = outPutDirecory + "\\Menus";
-            String sqlFolder = outPutDirecory + "\\SQL";
-
-            makeDirectory(entityFolder);
-            makeDirectory(dbAccessFolder);
-            makeDirectory(controllerFolder);
-            makeDirectory(fxmlFolder);
-            makeDirectory(dbAccessFolder);
-            makeDirectory(menusFolder);
-            makeDirectory(sqlFolder);
-
-            String daObjectName = objectName + "DA";
-            String entityFileName = entityFolder + "\\" + objectName + ".java";
-            String daFileName = dbAccessFolder + "\\" + daObjectName + ".java";
-            String fxmlFileName = fxmlFolder + "\\" + objectName + ".fxml";
-            String fxmlTBFileName = fxmlFolder + "\\" + objectName + "View.fxml";
-            String controllerFileName = controllerFolder + "\\" + objectName + "Controller.java";
-            String vwcontrollerFileName = controllerFolder + "\\" + objectName + "ViewController.java";
-            String menuFileName = menusFolder + "\\" + objectName + "Menu.txt";
-            String sqlFileName = sqlFolder + "\\" + objectName + "SQLFile.txt";
-
-            String entityFileContents = new Entity(objectName, fieldDAOs).makeClass(project);
-            String daFileContents = new DBAcess(objectName, fieldDAOs).makeClass(project);
-            String controllerFileContent = new Controller(objectName, fieldDAOs).makeClass(project);
-            String vwcontrollerFileContent = new GenViewController(objectName).makeClass();
-            String fxmlFileContent = new UIEdit(objectName, fieldDAOs).create(project);
-            String fxmlTBFileContent = new UIView(objectName, fieldDAOs).create(project);
-            String menuFIleContents = GenMenu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
-            String sqlFileContents = SQLFile.callEditAccessObject(objectName, objectCaption);
-
-            if (Utilities.hasHelper(fieldDAOs)) {
-                sqlFileContents += SQLFile.callEditIDGenerator(objectName);
-            }
-
-            List<Pair<String, String>> lstPairs = new ArrayList<>();
-
-            Pair<String, String> fxlPair = new Pair(fxmlFileName, fxmlFileContent);
-            Pair<String, String> fxlTBPair = new Pair(fxmlTBFileName, fxmlTBFileContent);
-            Pair<String, String> controllerPair = new Pair(controllerFileName, controllerFileContent);
-            Pair<String, String> vwcontrollerPair = new Pair(vwcontrollerFileName, vwcontrollerFileContent);
-            Pair<String, String> daFilePair = new Pair(daFileName, daFileContents);
-            Pair<String, String> entityPair = new Pair(entityFileName, entityFileContents);
-            Pair<String, String> menuPair = new Pair(menuFileName, menuFIleContents);
-            Pair<String, String> sqlPair = new Pair(sqlFileName, sqlFileContents);
-
-            if (chkGenerateMenus.isSelected()) {
-                menuFIleContents += "\n\n\n\n\n";
-                menuFIleContents += "\n\n\n\n\n";
-                lstPairs.add(new Pair(menuFileName, menuFIleContents));
-
-            }
-
-            if (chkGenerateViewUI.isSelected()) {
-                lstPairs.add(fxlTBPair);
-                lstPairs.add(vwcontrollerPair);
-
-            }
-
-//          Writing the created files
-            Pair<String, String> pairs[];
-
-            String toGenerateFile = "";
-            if (cboFiles.getSelectionModel().getSelectedIndex() > -1) {
-                toGenerateFile = cboFiles.getValue().toString();
-            }
-
-            switch (toGenerateFile) {
-                case "Entity":
-                    pairs = new Pair[]{entityPair};
-                    break;
-                case "DBAcess":
-                    pairs = new Pair[]{daFilePair};
-                    break;
-                case "Controller":
-                    pairs = new Pair[]{controllerPair};
-                    break;
-
-                case "View Controller":
-                    pairs = new Pair[]{vwcontrollerPair};
-                    break;
-                case "FXML":
-                    pairs = new Pair[]{fxlPair};
-                    break;
-                case "FXML View":
-                    pairs = new Pair[]{fxlTBPair};
-                    break;
-                case "Menu":
-                    pairs = new Pair[]{menuPair};
-                    break;
-                case "SQL":
-                    pairs = new Pair[]{sqlPair};
-                    break;
-                default:
-                    pairs = new Pair[]{entityPair, daFilePair, controllerPair, fxlPair, menuPair, sqlPair};
-
-                    break;
-
-            }
-            lstPairs.addAll(Arrays.asList(pairs));
-            List<Pair<String, String>> projectFiles = new ArrayList<>();
-            if (chkSaveToProject.isSelected()) {
-
-                String entityFileNameProj = project.getEntityFolder() + "\\" + objectName + ".java";
-                String daFileNameProj = project.getDBAcessFolder() + "\\" + daObjectName + ".java";
-                String fxmlFileNameProj = project.getResourceFolder() + "\\" + objectName + ".fxml";
-                String controllerFileNameProj = project.getControllerFolder() + "\\" + objectName + "Controller.java";
-
-                Pair<String, String> fxlPairProj = new Pair(fxmlFileNameProj, fxmlFileContent);
-                Pair<String, String> controllerPairProj = new Pair(controllerFileNameProj, controllerFileContent);
-                Pair<String, String> daFilePairProj = new Pair(daFileNameProj, daFileContents);
-                Pair<String, String> entityPairProj = new Pair(entityFileNameProj, entityFileContents);
-                switch (toGenerateFile) {
-                    case "Entity":
-                        pairs = new Pair[]{entityPairProj};
-                        break;
-                    case "DBAcess":
-                        pairs = new Pair[]{daFilePairProj};
-                        break;
-                    case "Controller":
-                        pairs = new Pair[]{controllerPairProj};
-                        break;
-
-                    case "FXML":
-                        pairs = new Pair[]{fxlPairProj};
-                        break;
-                    case "FXML View":
-                        pairs = new Pair[]{fxlTBPair};
-                        break;
-                    case "Menu":
-                        pairs = new Pair[]{menuPair};
-                        break;
-                    case "SQL":
-                        pairs = new Pair[]{sqlPair};
-                        break;
-                    default:
-                        pairs = new Pair[]{entityPairProj, daFilePairProj, controllerPairProj, fxlPairProj};
-
-                        break;
-
-                }
-                projectFiles.addAll(Arrays.asList(pairs));
-                projectFiles.forEach(a -> {
-                    String fileName = a.getKey();
-                    File file = new File(fileName);
-                    if (file.exists()) {
-                        if (warningOK("File Exists", "The file with name " + file.getName() + " already exists.\n"
-                                + "Do you want to replace it?")) {
-                            if (warningOK("Confirm Replace",
-                                    "Replacing this file may lead to potential loss of the code you previously wrote\n"
-                                    + "Are you sure you want to continue?")) {
-                                writeFile(fileName, a.getValue());
-                            }
-                        }
-                    } else {
-                        writeFile(fileName, a.getValue());
-                    }
-                });
-            }
-
-            lstPairs.forEach(a -> writeFile(a.getKey(), a.getValue()));
-
-            if (!chkOpenFile.isSelected()) {
-                message("Operation Successful");
+            if (projectType == null) {
+                message("Please select the Project Type!");
                 return;
             }
 
-            lstPairs.forEach(a -> {
-                try {
-                    openFile(a.getKey());
-                } catch (IOException ex) {
-                    errorMessage(ex);
+            if (project.getProjectType().equals(ProjectTypes.Springboot_API)) {
+                if (entityTypes == null) {
+                    message("Please select the Entity Type!");
+                    return;
                 }
-            });
+                if (serviceTypes == null) {
+                    message("Please select the Service Type!");
+                    return;
+                }
+            }
+
+            if (project.getProjectType().equals(ProjectTypes.Vue)) {
+                if (Utilities.isNullOrEmpty(moduleName)) {
+                    message("Please enter module name!");
+                    return;
+                }
+
+            }
+
+            String selectedFile = selectedFileo == null ? "ALL" : selectedFileo.toString();
+
+            List<FieldDAO> fieldDAOs = tblSaburiTools.getItems().stream().filter(p -> !p.getFieldName().isBlank()).toList();
+
+//            CodeGenerator codeGenerator = new CodeGenerator();
+            CodeGenerator.validate(fieldDAOs, project);
+            List items = cboFiles.getItems().stream()
+                    .filter(filterFileName(selectedFile))
+                    .filter(this.filterViewUI(chkGenerateViewUI.isSelected(), selectedFile))
+                    .toList();
+
+            for (Object item : items) {
+
+                String fileName = getFileFullName(objectName, project, item.toString());
+                String fileContentent = getFileContents(item.toString(), objectName, objectCaption, moduleName, project, fieldDAOs, entityTypes, serviceTypes);
+                File file = new File(fileName);
+                if (file.exists()) {
+                    if (!warningOK("File Exists", "The file with name " + file.getName() + " already exists.\n"
+                            + "Do you want to replace it?")) {
+                        message("Operation Cancelled!");
+                        return;
+                    } else {
+
+                        if (!warningOK("Confirm Replace", """
+                                                             Replacing this file may lead to potential loss of the code
+                                                             Are you sure you want to continue?""")) {
+                            message("Operation Cancelled!");
+                            return;
+                        }
+
+                    }
+                }
+                writeFile(fileName, fileContentent);
+                if (chkOpenFile.isSelected()) {
+                    Desktop.getDesktop().open(file);
+
+                }
+
+            }
+
+            if (!chkOpenFile.isSelected()) {
+                message("Operation Successful");
+            }
 
         } catch (IOException ex) {
-            Logger.getLogger(SmartCoderController.class.getName()).log(Level.SEVERE, null, ex);
+            errorMessage(ex);
         } catch (Exception e) {
             errorMessage(e);
         }

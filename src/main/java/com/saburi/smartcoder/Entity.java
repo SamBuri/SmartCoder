@@ -9,8 +9,12 @@ import com.saburi.dataacess.FieldDAO;
 import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
 import com.saburi.utils.Enums;
+import com.saburi.utils.Enums.EntityTypes;
+import com.saburi.utils.Enums.ProjectTypes;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
+import static com.saburi.utils.Utilities.getParentEntity;
+import static com.saburi.utils.Utilities.isNullOrEmpty;
 import static com.saburi.utils.Utilities.makeMethod;
 import java.util.ArrayList;
 import java.util.List;
@@ -22,53 +26,68 @@ import java.util.stream.Collectors;
  */
 public class Entity extends CodeGenerator {
 
-    String objectName;
-    List<FieldDAO> fields;
-    String objectNameDA;
-    String objectNameController;
-    String objectNameViewController;
-    String objectNameEdit;
-    String objectNameView;
-    String primaryKeyVariableName;
-    FieldDAO primaryKeyFied;
-    String objectVariableName;
+    private final String objectName;
+    private final List<FieldDAO> fields;
+    private String primaryKeyVariableName;
+    private FieldDAO primaryKeyFied;
+    private final String objectVariableName;
+    private final Project project;
+    private final ProjectTypes projectType;
     private final ProjectDAO oProjectDAO = new ProjectDAO();
 
-    public Entity(String objectName, List<FieldDAO> fields) {
+    public Entity(String objectName, Project project, List<FieldDAO> fields) {
         this.objectName = objectName;
-        this.fields = fields;
-        this.objectNameDA = objectName.concat("DA");
-        this.objectNameController = objectName.concat("Controller");
-        this.objectNameViewController = objectName.concat("ViewController");
-        this.objectNameEdit = objectName.concat("Edit");
-        this.objectNameView = objectName.concat("View");
+        this.project = project;
+        this.projectType = this.project.getProjectType();
+        this.fields = fields.stream()
+                .filter(p -> !p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name()))
+                .filter(p -> !(projectType.equals(ProjectTypes.Springboot_API) && p.isPrimaryKey()))
+                .collect(Collectors.toList());
+
         primaryKeyFied = Utilities.getPrimaryKey(fields);
-        this.primaryKeyVariableName = primaryKeyFied.getVariableName();
+        this.primaryKeyVariableName = primaryKeyFied == null ? "id" : primaryKeyFied.getVariableName();
+
         this.objectVariableName = Utilities.getVariableName(objectName);
+
     }
 
-    public String makeEntityImports(Project currentProject) {
-        Project commonProject = oProjectDAO.find(currentProject.getCommonProjectID());
-        String imp = "import java.util.Objects;\n"
-                + "import javax.persistence.Column;\n"
-                + "import javax.persistence.Entity;\n"
-                + "import javax.persistence.Id;\n"
-                + "import org.hibernate.envers.Audited;\n"
-                + "import org.hibernate.envers.RelationTargetAuditMode;\n";
+    private boolean forceReferences(FieldDAO fieldDAO) {
+        String proiectName = fieldDAO.getProjectName();
+        return this.projectType.equals(ProjectTypes.Springboot_API) ? proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName) : true;
+    }
+
+    public String makeEntityImports(Project project, EntityTypes entityTypes) throws Exception {
+        Project commonProject = oProjectDAO.get(project.getCommonProjectName());
+        String idImp = project.getProjectType().equals(ProjectTypes.Desktop) ? """
+                            import jakarta.persistence.Id;
+                             """ : "";
+        String imp = """
+                     import java.util.Objects;
+                     import jakarta.persistence.Column;
+                     import jakarta.persistence.Entity;
+                     import jakarta.persistence.Table;
+                     import org.hibernate.envers.Audited;
+                     import org.hibernate.envers.RelationTargetAuditMode;
+                     import lombok.Builder;
+                     """ + idImp;
         List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
                 .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
         if (!uniqueGroups.isEmpty()) {
-            imp += "import javax.persistence.Table;\n"
-                    + "import javax.persistence.UniqueConstraint;\n";
+            imp += """
+                    import jakarta.persistence.UniqueConstraint;
+                   """;
         }
-        if (commonProject.getProjectID() != currentProject.getProjectID()) {
-            imp += "import " + oProjectDAO.find(currentProject.getCommonProjectID()).getEntityPackage() + ".DBEntity;\n";
+        if (project.getProjectType().equals(ProjectTypes.Springboot_API)) {
+            if (!commonProject.getProjectName().equalsIgnoreCase(project.getProjectName())) {
+                imp += "import " + commonProject.getBasePackage() + ".entities." + getParentEntity(entityTypes) + ";\n";
+                imp += "import " + commonProject.getBasePackage() + ".dtos.ResponseData;\n";
+            }
         }
         List<String> imports = new ArrayList();
-        this.fields.forEach((t) -> {
-            t.entityImports(currentProject).forEach(i -> addIfNotExists(imports, i));
+        for (FieldDAO t : this.fields) {
+            t.entityImports(project, forceReferences(t)).forEach(i -> addIfNotExists(imports, i));
 
-        });
+        };
         for (String impo : imports) {
             imp += impo + ";\n";
         }
@@ -79,12 +98,14 @@ public class Entity extends CodeGenerator {
         String annotedFields = "";
         for (FieldDAO field : this.fields) {
             if (field.isReferance() && field.isPrimaryKey()) {
-                annotedFields += "@Id\n"
-                        + "    @Column(length = " + field.getSize() + ", updatable = false)";
-                annotedFields += "private String" + objectName.concat("ID");
+                annotedFields += """
+                                  @Id
+                                  @Column(length = """ + field.getSize() + ", updatable = false)";
+                annotedFields += "private String" + objectName.concat(this.forceReferences(field) ? "Id" : "");
             }
-            annotedFields += field.fiedAnnotations(objectName, primaryKeyVariableName);
-            annotedFields += "private " + field.getDeclaration(true, true);
+
+            annotedFields += field.entityAnnotation(objectName, primaryKeyVariableName, forceReferences(field));
+            annotedFields += "private " + field.getDeclaration(forceReferences(field), true);
 
         }
         return annotedFields;
@@ -94,15 +115,20 @@ public class Entity extends CodeGenerator {
 
         String construtorLine = "";
         String construtorInitials = "";
-        for (int i = 0; i < fields.size(); i++) {
-            FieldDAO field = this.fields.get(i);
-
-            if (!field.isCollection()) {
+        List<FieldDAO> writeFields = this.fields.stream()
+                .filter(p -> !(p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name())
+                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Query_Only.name())
+                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Read_Only.name())))
+                .collect(Collectors.toList());
+        for (int i = 0; i < writeFields.size(); i++) {
+            FieldDAO field = writeFields.get(i);
+            boolean addToConstructor = this.projectType.equals(ProjectTypes.Desktop) ? !field.isCollection() : true;
+            if (addToConstructor) {
 
                 if (i == 0) {
-                    construtorLine += field.getDeclaration(true, false);
+                    construtorLine += field.getDeclaration(forceReferences(field), false);
                 } else {
-                    construtorLine += "," + field.getDeclaration(true, false);
+                    construtorLine += "," + field.getDeclaration(forceReferences(field), false);
                 }
                 construtorInitials += "this." + field.getVariableName() + " = " + field.getVariableName() + ";\n";
             }
@@ -114,7 +140,7 @@ public class Entity extends CodeGenerator {
     public String makeProperties() {
         String properties = "";
         for (FieldDAO field : fields) {
-            properties += field.makeProperties();
+            properties += field.makeProperties(forceReferences(field));
         }
         return properties;
     }
@@ -126,7 +152,10 @@ public class Entity extends CodeGenerator {
 //        }
 //        return setters;
 //    }
-    public String overriddenID() {
+    public String overriddenID(Project project) {
+        if (project.getProjectType().equals(ProjectTypes.Springboot_API)) {
+            return "";
+        }
 
         String primaryKey = "";
         for (FieldDAO field : fields) {
@@ -184,21 +213,30 @@ public class Entity extends CodeGenerator {
         return method;
     }
 
-    public String otherMethods() {
+    public String otherMethods(Project project, EntityTypes entityTypes) {
+
+        boolean isAutoPK;
+        if (project.getProjectType().equals(ProjectTypes.Desktop)) {
+            isAutoPK = primaryKeyFied.isPrimaryKeyAuto();
+        } else {
+            isAutoPK = entityTypes.equals(EntityTypes.Auto_ID_Int) || entityTypes.equals(EntityTypes.Auto_ID_Long);
+        }
+
         List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
                 .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
 
-        String body = "if (this == o) {\n"
-                + "            return true;\n"
-                + "        }\n"
-                + "        if (o == null) {\n"
-                + "            return false;\n"
-                + "        }\n"
-                + "        if (getClass() != o.getClass()) {\n"
-                + "            return false;\n"
-                + "        }\n"
-                + "        final " + this.objectName + " " + objectVariableName + " = (" + this.objectName + ") o;";
-        if (primaryKeyFied.isPrimaryKeyAuto() && !uniqueGroups.isEmpty()) {
+        String body = """
+                      if (this == o) {
+                                  return true;
+                              }
+                              if (o == null) {
+                                  return false;
+                              }
+                              if (getClass() != o.getClass()) {
+                                  return false;
+                              }
+                              final """ + " " + this.objectName + " " + objectVariableName + " = (" + this.objectName + ") o;";
+        if (isAutoPK && !uniqueGroups.isEmpty()) {
             int last = uniqueGroups.size() - 1;
             List<FieldDAO> middleUniqueFileds = new ArrayList<>(uniqueGroups);
             middleUniqueFileds.remove(last);
@@ -217,7 +255,7 @@ public class Entity extends CodeGenerator {
         String objectEquals = makeMethod("@Override\npublic", "boolean", "equals", "Object o", body);
 
         String hashBody = "";
-        if (primaryKeyFied.isPrimaryKeyAuto() && !uniqueGroups.isEmpty()) {
+        if (isAutoPK && !uniqueGroups.isEmpty()) {
             int last = uniqueGroups.size() - 1;
             List<FieldDAO> middleUniqueFileds = new ArrayList<>(uniqueGroups);
             middleUniqueFileds.remove(last);
@@ -228,41 +266,75 @@ public class Entity extends CodeGenerator {
             hashBody = "return " + hashBody;
 
         } else {
-            hashBody = " return Objects.hashCode(this." + primaryKeyVariableName + ");\n";
+            hashBody = " return Objects.hashCode(this." + (project.getProjectType().equals(ProjectTypes.Desktop) ? primaryKeyVariableName : "id") + ");\n";
 
         }
 
         String objectHashCode = makeMethod("@Override\npublic", "int", "hashCode", "", hashBody);
+        String idValueMessage = "";
+        if (project.getProjectType().equals(ProjectTypes.Springboot_API)) {
+            if (entityTypes.equals(EntityTypes.Auto_ID_Gen)) {
 
-        return objectEquals + objectHashCode;
+                FieldDAO idgenerator = Utilities.getIDGenerator(fields);
+                if (idgenerator != null) {
+                    String generatorValue = idgenerator.getVariableName();
+
+                    if (idgenerator.isReferance()) {
+                        if (idgenerator.getEnumerated()) {
+                            generatorValue = idgenerator.getVariableName();
+                        } else {
+                            generatorValue = idgenerator.getVariableName() + ".getId()";
+                        }
+                    }
+
+                    idValueMessage += "@Override\n"
+                            + "    public String getIdGenerateValue() {\n"
+                            + "       return  String.valueOf(this." + generatorValue + ");\n"
+                            + "    }";
+                }
+            }
+        }
+
+        return objectEquals + objectHashCode + idValueMessage;
 
     }
 
-    public String makeClass(Project currentProject) throws Exception {
-        validate(fields);
+    public String makeClass(Project project, EntityTypes entityTypes) throws Exception {
+        validate(fields, project);
         List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
                 .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
-        String tableAnnotation = "";
+        String uniqueColumnGroupsConstraints = "";
         if (!uniqueGroups.isEmpty()) {
             FieldDAO fdao = uniqueGroups.get(0);
-            String columnNames = "\"" + fdao.getDBColumnName() + "\"";
+            String columnNames = "\"" + fdao.getDBColumnName(this.forceReferences(fdao)) + "\"";
             String constraintName = "uq" + fdao.getFieldName();
             for (int i = 1; i < uniqueGroups.size(); i++) {
                 FieldDAO fieldDAO = uniqueGroups.get(i);
-                columnNames += "," + "\"" + fieldDAO.getDBColumnName() + "\"";
+                columnNames += "," + "\"" + fieldDAO.getDBColumnName(this.forceReferences(fieldDAO)) + "\"";
                 constraintName += fieldDAO.getFieldName();
             }
 
-            tableAnnotation = "\n@Table(\n"
-                    + "        uniqueConstraints = @UniqueConstraint(columnNames = {" + columnNames + "}, "
-                    + "name = \"" + constraintName + "\")\n"
-                    + ")";
+            uniqueColumnGroupsConstraints = " ,uniqueConstraints = @UniqueConstraint(columnNames = {" + columnNames + "}, "
+                    + "name = \"" + constraintName + "\")\n";
         }
         String constructor = new JavaClass(objectName).makeNoArgConstructor().concat("\n") + this.makeConstructor();
-        String methods = otherMethods() + this.overriddenID() + this.overriddenDisplayKey();
-        JavaClass javaClass = new JavaClass(currentProject.getEntityPackage(), objectName, this.makeEntityImports(currentProject),
+        String methods = otherMethods(project, entityTypes) + this.overriddenID(project) + this.overriddenDisplayKey();
+
+        String entityPackage = project.getEntityPackage();
+        String packageName = isNullOrEmpty(entityPackage)
+                ? project.getBasePackage() + "." + objectName.toLowerCase() : entityPackage;
+        String imp = project.getProjectType().equals(ProjectTypes.Springboot_API) ? "implements ResponseData" : "";
+
+        JavaClass javaClass = new JavaClass(packageName, objectName, this.makeEntityImports(project, entityTypes),
                 this.makeAnnotedFields(), constructor, this.makeProperties(), methods);
-        return javaClass.makeClass("DBEntity", "@Entity\n@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)" + tableAnnotation);
+
+        String entityAnnotation = "@Entity\n@Builder";
+        String tableName = Utilities.toPlural(objectName).toLowerCase();
+        String tableAnnotation = "@Table(name = \"" + tableName + "\"" + uniqueColumnGroupsConstraints + ")";
+        String auditAnnotation = "@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)";
+
+        String topAnnotations = entityAnnotation.concat("\n").concat("\n").concat(tableAnnotation).concat("\n").concat(auditAnnotation);
+        return javaClass.makeClass(entityTypes, imp, topAnnotations);
     }
 
 }

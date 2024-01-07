@@ -10,16 +10,16 @@ import com.google.gson.JsonSyntaxException;
 import com.google.gson.reflect.TypeToken;
 import com.saburi.model.Model;
 import com.saburi.model.Project;
+import com.saburi.utils.FXUIUtils;
 import com.saburi.utils.SearchColumn;
 import com.saburi.utils.SearchColumn.SearchDataTypes;
-import static com.saburi.utils.Utilities.getInt;
 import java.io.BufferedReader;
 import java.io.FileNotFoundException;
 import java.io.FileReader;
 import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
-import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.beans.property.SimpleStringProperty;
 
 /**
@@ -30,9 +30,12 @@ public class ProjectDAO extends DataAccess {
 
     private Project project = new Project();
     private transient final String currentFile = "Projects.json";
-    private final SimpleIntegerProperty projectID = new SimpleIntegerProperty(this, "projectID");
+    private final SimpleObjectProperty projectType = new SimpleObjectProperty(this, "projectType");
     private final SimpleStringProperty projectName = new SimpleStringProperty(this, "projectName");
-    private final SimpleIntegerProperty commonProjectID = new SimpleIntegerProperty(this, "commonProjectID");
+    private final SimpleStringProperty basePackage = new SimpleStringProperty(this, "basePackage");
+    private final SimpleStringProperty baseFolder = new SimpleStringProperty(this, "baseFolder");
+    private final SimpleStringProperty testFolder = new SimpleStringProperty(this, "testFolder");
+    private final SimpleStringProperty commonProjectName = new SimpleStringProperty(this, "commonProjectName");
     private final SimpleStringProperty entityPackage = new SimpleStringProperty(this, "entityPackage");
     private final SimpleStringProperty dBAccessPackage = new SimpleStringProperty(this, "dBAccessPackage");
     private final SimpleStringProperty contollerPackage = new SimpleStringProperty(this, "contollerPackage");
@@ -50,23 +53,30 @@ public class ProjectDAO extends DataAccess {
     private final SimpleStringProperty sQLFile = new SimpleStringProperty(this, "sQLFile");
 
     public ProjectDAO() {
-        this.fileName = super.baseurl.concat(currentFile);
+//        this.fileName = super.baseurl.concat(currentFile);
         createSearchColumns();
     }
 
     public ProjectDAO(Project project) {
-        this.fileName = super.baseurl.concat(currentFile);
+//        this.fileName = super.baseurl.concat(currentFile);
         this.project = project;
         initialseProprties();
         createSearchColumns();
-        this.model = project;
+       
+    }
+
+    @Override
+    protected String getFileName() {
+        return this.currentFile;
     }
 
     private void initialseProprties() {
-        this.model = project;
-        this.projectID.set(project.getProjectID());
+         this.projectType.set(project.getProjectType());
         this.projectName.set(project.getProjectName());
-        this.commonProjectID.set(project.getCommonProjectID());
+        this.basePackage.set(project.getBasePackage());
+        this.baseFolder.set(project.getBaseFolder());
+        this.testFolder.set(project.getTestFolder());
+        this.commonProjectName.set(project.getCommonProjectName());
         this.entityPackage.set(project.getEntityPackage());
         this.dBAccessPackage.set(project.getDBAccessPackage());
         this.contollerPackage.set(project.getContollerPackage());
@@ -86,9 +96,12 @@ public class ProjectDAO extends DataAccess {
     }
 
     private void createSearchColumns() {
-        this.searchColumns.add(new SearchColumn("projectID", "Project ID", this.projectID.get(), SearchDataTypes.NUMBER));
+        this.searchColumns.add(new SearchColumn("projectType", "Project Type", this.projectType.get(), SearchDataTypes.STRING));
         this.searchColumns.add(new SearchColumn("projectName", "Project Name", this.projectName.get(), SearchDataTypes.STRING));
-        this.searchColumns.add(new SearchColumn("commonProjectID", "Common Project ID", this.commonProjectID.get(), SearchDataTypes.NUMBER));
+        this.searchColumns.add(new SearchColumn("basePackage", "Base Package", this.basePackage.get(), SearchDataTypes.STRING));
+        this.searchColumns.add(new SearchColumn("baseFolder", "Base Folder", this.baseFolder.get(), SearchDataTypes.STRING));
+         this.searchColumns.add(new SearchColumn("testFolder", "Test Folder", this.testFolder.get(), SearchDataTypes.STRING));
+        this.searchColumns.add(new SearchColumn("commonProjectName", "Common Project", this.commonProjectName.get(), SearchDataTypes.NUMBER));
         this.searchColumns.add(new SearchColumn("entityPackage", "Entity Package", this.entityPackage.get(), SearchDataTypes.STRING));
         this.searchColumns.add(new SearchColumn("dBAccessPackage", "DB Access Package", this.dBAccessPackage.get(), SearchDataTypes.STRING));
         this.searchColumns.add(new SearchColumn("contollerPackage", "Controller Package", this.contollerPackage.get(), SearchDataTypes.STRING));
@@ -100,10 +113,10 @@ public class ProjectDAO extends DataAccess {
         this.searchColumns.add(new SearchColumn("dBAcessFolder", "DB Access Folder", this.dBAcessFolder.get(), SearchDataTypes.STRING));
         this.searchColumns.add(new SearchColumn("controllerFolder", "Controller Folder", this.controllerFolder.get(), SearchDataTypes.STRING));
         this.searchColumns.add(new SearchColumn("resourceFolder", "Resource Folder", this.resourceFolder.get(), SearchDataTypes.STRING));
-        this.searchColumns.add(new SearchColumn("menuControllerFile", "Menu Controller File", this.menuControllerFile.get(), SearchDataTypes.STRING));
-        this.searchColumns.add(new SearchColumn("searchTreeFile", "Search Tree File", this.searchTreeFile.get(), SearchDataTypes.STRING));
-        this.searchColumns.add(new SearchColumn("menuUIFile", "Menu UI File", this.menuUIFile.get(), SearchDataTypes.STRING));
-        this.searchColumns.add(new SearchColumn("sQLFile", "SQL File", this.sQLFile.get(), SearchDataTypes.STRING));
+//        this.searchColumns.add(new SearchColumn("menuControllerFile", "Menu Controller File", this.menuControllerFile.get(), SearchDataTypes.STRING));
+//        this.searchColumns.add(new SearchColumn("searchTreeFile", "Search Tree File", this.searchTreeFile.get(), SearchDataTypes.STRING));
+//        this.searchColumns.add(new SearchColumn("menuUIFile", "Menu UI File", this.menuUIFile.get(), SearchDataTypes.STRING));
+//        this.searchColumns.add(new SearchColumn("sQLFile", "SQL File", this.sQLFile.get(), SearchDataTypes.STRING));
 
     }
 
@@ -151,26 +164,30 @@ public class ProjectDAO extends DataAccess {
         this.saveJson(projects);
     }
 
-    public Project find(String projectID) {
+    public Project get(String projectName) throws Exception {
         try {
 
             return this.read().stream()
-                    .filter((p) -> p.getProjectID() == getInt(projectID))
+                    .filter((p) -> p.getProjectName().equalsIgnoreCase(projectName))
                     .findFirst().orElse(null);
         } catch (Exception e) {
-            return null;
+            throw e;
         }
     }
 
-    public Project find(int projectID) {
-        try {
+//    public Project get(int projectID) {
+//        try {
+//
+//            return this.read().parallelStream()
+//                    .filter((p) -> p.getProjectID() == projectID)
+//                    .findFirst().orElse(null);
+//        } catch (Exception e) {
+//            return null;
+//        }
+//    }
 
-            return this.read().stream()
-                    .filter((p) -> p.getProjectID() == projectID)
-                    .findFirst().orElse(null);
-        } catch (Exception e) {
-            return null;
-        }
+    @Override
+    public Model getModel() {
+        return this.project;
     }
-
 }

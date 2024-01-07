@@ -5,15 +5,16 @@
  */
 package com.saburi.smartcoder;
 
+import com.saburi.dataacess.SettingsDAO;
+import com.saburi.model.Model;
 import com.saburi.model.Settings;
 import static com.saburi.utils.FXUIUtils.errorMessage;
 import static com.saburi.utils.FXUIUtils.getInt;
 import static com.saburi.utils.FXUIUtils.message;
 import java.io.IOException;
 import java.net.URL;
+import java.util.Optional;
 import java.util.ResourceBundle;
-import java.util.logging.Level;
-import java.util.logging.Logger;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.scene.Node;
@@ -34,6 +35,7 @@ public class SettingsController implements Initializable {
     private Button btnSave;
     @FXML
     private Button btnClose;
+    private SettingsDAO settingsDAO =  new SettingsDAO();
 
     /**
      * Initializes the controller class.
@@ -49,10 +51,15 @@ public class SettingsController implements Initializable {
     
     private void loadSettings(){
         try {
-            Settings settings =Settings.readProperties(); //new Settings().xmlDecode();
-            txtBreakLine.setText(String.valueOf(settings.getLineBreak()));
-            txtMiniBreakLine.setText(String.valueOf(settings.getMiniLineBreak()));
-            Settings.setAppSettings(settings);
+            
+            Optional<? extends Model> settings =settingsDAO.read().parallelStream().findAny();
+            
+          if(settings.isPresent()){
+           Settings s =  (Settings) settings.get();
+            txtBreakLine.setText(String.valueOf(s.getLineBreak()));
+            txtMiniBreakLine.setText(String.valueOf(s.getMiniLineBreak()));
+        }
+          
         } catch (IOException ex) {
             errorMessage(ex);
         } catch (Exception ex) {
@@ -65,7 +72,8 @@ public class SettingsController implements Initializable {
             int lineBreak = getInt(txtBreakLine, "Break Line");
             int miLineBreak = getInt(txtMiniBreakLine, "Break Line");
             Settings settings = new Settings(lineBreak, miLineBreak);
-            Settings.writeProperties(settings);
+            SettingsDAO sdao =  new SettingsDAO(settings);
+            sdao.clearSave(settings);
 //            settings.xmlEncode();
             message("Operation Successful");
         } catch (Exception e) {

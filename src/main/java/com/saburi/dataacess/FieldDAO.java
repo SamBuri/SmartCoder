@@ -7,13 +7,18 @@ package com.saburi.dataacess;
 
 import com.saburi.model.Field;
 import com.saburi.model.Project;
-import com.saburi.utils.Enums.FXControls;
+import com.saburi.utils.Enums;
+import com.saburi.utils.Enums.UIControls;
 import com.saburi.utils.Enums.Saburikeys;
+import static com.saburi.utils.Enums.UIControls.CheckBox;
+import static com.saburi.utils.Enums.UIControls.ComboBox;
 import com.saburi.utils.Enums.keys;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 import javafx.beans.property.*;
 
 /**
@@ -34,7 +39,10 @@ public class FieldDAO {
     private SimpleBooleanProperty nullable = new SimpleBooleanProperty(this, "nullable", true);
     private SimpleBooleanProperty enumerated = new SimpleBooleanProperty(this, "enumerated", false);
     private SimpleStringProperty subFields = new SimpleStringProperty(this, "subFields", "");
-    private SimpleStringProperty projectID = new SimpleStringProperty(this, "projectID", "");
+    private SimpleStringProperty projectName = new SimpleStringProperty(this, "projectName", "");
+    private SimpleBooleanProperty expose = new SimpleBooleanProperty(this, "expose", false);
+    private SimpleStringProperty moduleName = new SimpleStringProperty(this, "moduleName", "");
+    private SimpleBooleanProperty select = new SimpleBooleanProperty(this, "select", false);
 
     private String variableName;
     private String referencesID;
@@ -42,19 +50,19 @@ public class FieldDAO {
     private String referencesVariableID;
     private String displayVariableName;
     private final String displayDataType = "String";
-    ProjectDAO oProjectDAO = new ProjectDAO();
+    private ProjectDAO oProjectDAO = new ProjectDAO();
     private Project project;
     private Project commonProject;
 
     public FieldDAO() {
     }
 
-    public FieldDAO(Field field) {
+    public FieldDAO(Field field) throws Exception {
         this.field = field;
         initialseProprties();
     }
 
-    private void initialseProprties() {
+    private void initialseProprties() throws Exception {
         this.fieldName = new SimpleStringProperty(field.getFieldName());
         this.caption = new SimpleStringProperty(field.getCaption());
         this.dataType = new SimpleStringProperty(field.getDataType());
@@ -65,14 +73,16 @@ public class FieldDAO {
         this.saburiKey = new SimpleStringProperty(field.getSaburiKey());
         this.size = new SimpleIntegerProperty(field.getSize());
         this.enumerated = new SimpleBooleanProperty(field.isEnumerated());
-        this.projectID = new SimpleStringProperty(field.getProjectID());
+        this.projectName = new SimpleStringProperty(field.getProjectName());
         this.nullable = new SimpleBooleanProperty(field.isNullable());
         this.variableName = Utilities.getVariableName(this.fieldName.get());
         this.referencesID = this.fieldName.get().concat("ID");
         this.display = this.fieldName.get().concat("Display");
         this.referencesVariableID = Utilities.getVariableName(referencesID);
         this.displayVariableName = Utilities.getVariableName(display);
-        this.project = oProjectDAO.find(field.getProjectID());
+        this.project = oProjectDAO.get(field.getProjectName());
+        this.expose.set(field.isExpose());
+        this.moduleName.set(field.getModuleName());
 
     }
 
@@ -98,7 +108,13 @@ public class FieldDAO {
 
     public static List<FieldDAO> getFieldDAOs(List<Field> fields) {
         List<FieldDAO> fieldDAOs = new ArrayList<>();
-        fields.forEach(fd -> fieldDAOs.add(new FieldDAO(fd)));
+        fields.forEach(fd -> {
+            try {
+                fieldDAOs.add(new FieldDAO(fd));
+            } catch (Exception ex) {
+                Logger.getLogger(FieldDAO.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        });
         return fieldDAOs;
 
     }
@@ -191,12 +207,52 @@ public class FieldDAO {
         return enumerated.get();
     }
 
-    public String getProjectID() {
-        return projectID.get();
+    public String getProjectName() {
+        return projectName.get();
     }
 
-    public void setProjectID(String projectID) {
-        this.projectID.set(projectID);
+    public void setProjectName(String projectName) {
+        this.projectName.set(projectName);
+    }
+
+    public boolean isExpose() {
+        return this.expose.get();
+    }
+
+    public void setExpose(boolean expose) {
+        this.expose.set(expose);
+    }
+
+    public boolean isSelect() {
+        return this.select.get();
+    }
+
+    public void setSelect(boolean select) {
+        this.select.set(select);
+    }
+
+    public SimpleBooleanProperty getSelect() {
+        return select;
+    }
+
+    public void setSelect(SimpleBooleanProperty select) {
+        this.select = select;
+    }
+
+    public String getModuleName() {
+        return moduleName.get();
+    }
+
+    public void setModuleName(String moduleName) {
+        this.moduleName.set(moduleName);
+    }
+
+    public SimpleBooleanProperty getExpose() {
+        return expose;
+    }
+
+    public void setExpose(SimpleBooleanProperty expose) {
+        this.expose = expose;
     }
 
     public SimpleBooleanProperty getNullableProperty() {
@@ -239,8 +295,16 @@ public class FieldDAO {
         return commonProject;
     }
 
+    public Project getFieldLineProject(Project lineProject) throws Exception {
+        if (this.getProjectName().isBlank()) {
+            return lineProject;
+        } else {
+            return oProjectDAO.get(getProjectName());
+        }
+    }
+
     public String getColumnName(String custom) {
-        if (isReferance()) {
+        if (isReferance() && !this.getEnumerated()) {
             return "tbc" + custom + getFieldName() + "ID";
         } else {
             return "tbc" + custom + getFieldName();
@@ -251,11 +315,27 @@ public class FieldDAO {
         return "tbc" + getFieldName();
     }
 
-    public String getDBColumnName() {
-        if (isReferance() && !getEnumerated()) {
-            return this.getVariableName().concat("ID");
+    public String getDBColumnName(boolean forceReferences) {
+        if (isForeignKey(forceReferences)
+                && !getReferences().equalsIgnoreCase("RevInfo")) {
+            return this.getVariableName().concat(forceReferences ? "Id" : "");
         }
         return this.getVariableName();
+    }
+
+    public String getReqVariableName(boolean forceReferences) {
+        if (isForeignKey(forceReferences)
+                && !getReferences().equalsIgnoreCase("RevInfo")) {
+            return this.getVariableName().concat(forceReferences ? "Id" : "");
+        }
+        return this.getVariableName();
+    }
+
+    public String getReqFieldName(boolean forceReferences) {
+        if (isForeignKey(forceReferences) && !getReferences().equalsIgnoreCase("RevInfo")) {
+            return this.getFieldName().concat(forceReferences ? "Id" : "");
+        }
+        return this.getFieldName();
     }
 
     public boolean hasDisplay() {
@@ -282,11 +362,20 @@ public class FieldDAO {
 
     @Override
     public String toString() {
-        return fieldName.get() + ", " + caption.get() + ", " + dataType.get() + ", " + references.get() + "," + subFields.get() + ", " + mapping.get() + ", " + key.get() + ", " + saburiKey.get() + ", " + size.get() + ", " + enumerated.get() + ", " + nullable.get() + ", " + projectID.get();
+        return fieldName.get() + ", " + caption.get() + ", " + dataType.get() + ", "
+                + "" + references.get() + "," + subFields.get() + ", "
+                + mapping.get() + ", " + key.get() + ", " + saburiKey.get() + ", "
+                + size.get() + ", " + enumerated.get() + ", " + nullable.get() + ", "
+                + projectName.get() + ", "
+                + expose.get() + ", " + moduleName.get();
     }
 
     public boolean isReferance() {
         return !(this.getReferences().isBlank() || this.getReferences().equalsIgnoreCase("None"));
+    }
+
+    public boolean isForeignKey(boolean forceReference) {
+        return this.isReferance() && forceReference && !getEnumerated();
     }
 
     public boolean isPrimaryKey() {
@@ -314,6 +403,33 @@ public class FieldDAO {
             return ".getDisplayKey()";
         }
         return "";
+    }
+
+    public String getReferenceDisplayText(boolean forceReferences) {
+        if (isReferance() && forceReferences && !getEnumerated()) {
+            return ".getDisplayKey()";
+        }
+        return "";
+    }
+
+    public boolean referencesLookup() {
+        return this.getReferences().equalsIgnoreCase("LookupData");
+    }
+
+    public boolean referencesLookupExt(Project project) {
+        return this.referencesLookup() && !this.getProjectName().equalsIgnoreCase(project.getProjectName());
+    }
+
+    public boolean referencesAccount() {
+        return this.getReferences().equalsIgnoreCase("Account");
+    }
+
+    public boolean referencesAccountExt(Project project) {
+        return this.referencesAccount() && !this.getProjectName().equalsIgnoreCase(project.getProjectName());
+    }
+
+    public boolean referencesIN(Project project) {
+        return this.isReferance() && (this.getProjectName().equalsIgnoreCase(project.getProjectName()) || Utilities.isNullOrEmpty(this.getProjectName()));
     }
 
     public String getDeclaration(boolean forceReferences, boolean newLine) {
@@ -349,7 +465,7 @@ public class FieldDAO {
 
     public String getSearchDataType() {
         String type = this.dataType.get();
-        if (type.equalsIgnoreCase("String")) {
+        if (type.equalsIgnoreCase("String") || type.equalsIgnoreCase("File")) {
             return "SearchDataTypes.STRING";
         } else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
             return "SearchDataTypes.INTEGER";
@@ -367,9 +483,24 @@ public class FieldDAO {
 
     }
 
+    public boolean isNumeric() {
+        String type = this.dataType.get();
+        return type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")
+                || type.equalsIgnoreCase("float")
+                || type.equalsIgnoreCase("double");
+    }
+
+    public boolean isDate() {
+        return this.getDataType().equalsIgnoreCase("Date") || this.getDataType().equalsIgnoreCase("LocalDate");
+    }
+    
+    public boolean isDateTime() {
+        return this.getDataType().equalsIgnoreCase("DateTime") || this.getDataType().equalsIgnoreCase("LocalDateTime");
+    }
+
     public String getDataTypeWrapper() {
         String type = this.dataType.get();
-        if (type.equalsIgnoreCase("String")) {
+        if (type.equalsIgnoreCase("String") || type.equalsIgnoreCase("File")) {
             return "String";
         } else if (type.equalsIgnoreCase("int")) {
             return "Integer";
@@ -389,67 +520,124 @@ public class FieldDAO {
 
     }
 
-    public FXControls getControlType() {
+    public UIControls getControlType() {
         if (isReferance() && !this.isCollection()) {
-            return FXControls.ComboBox;
+            return UIControls.ComboBox;
         }
 
         if (this.getDataType().equalsIgnoreCase("Date") || this.getDataType().equalsIgnoreCase("DateTime")
                 || this.getDataType().equalsIgnoreCase("LocalDate") || this.getDataType().equalsIgnoreCase("LocalDateTime")) {
-            return FXControls.DatePicker;
+            return UIControls.DatePicker;
         }
 
         if (this.getDataType().equalsIgnoreCase("bool") || this.getDataType().equalsIgnoreCase("boolean")) {
-            return FXControls.CheckBox;
+            return UIControls.CheckBox;
         }
 
         if (this.getDataType().equalsIgnoreCase("Image")) {
-            return FXControls.ImageView;
+            return UIControls.ImageView;
+        }
+
+        if (this.getDataType().equalsIgnoreCase("File")) {
+            return UIControls.FileBrowser;
         }
 
         if (this.isCollection()) {
             if (makeEditableTable()) {
-                return FXControls.TableView;
+                return UIControls.TableView;
             } else {
-                return FXControls.TextArea;
+                return UIControls.TextArea;
             }
         }
 
-        if (this.getDataType().equalsIgnoreCase("String")) {
+        if (this.getDataType().equalsIgnoreCase("String") || this.getDataType().equalsIgnoreCase("File")) {
             if (this.getSize() > 100) {
-                return FXControls.TextArea;
+                return UIControls.TextArea;
             }
-            return FXControls.TextField;
+            return UIControls.TextField;
         } else {
-            return FXControls.TextField;
+            return UIControls.TextField;
+        }
+    }
+
+    public UIControls getPrimaryControlType() {
+        if (isReferance() && !this.isCollection()) {
+            return UIControls.ComboBox;
+        }
+
+        if (this.getDataType().equalsIgnoreCase("Date") || this.getDataType().equalsIgnoreCase("DateTime")
+                || this.getDataType().equalsIgnoreCase("LocalDate") || this.getDataType().equalsIgnoreCase("LocalDateTime")) {
+            return UIControls.DatePicker;
+        }
+
+        if (this.getDataType().equalsIgnoreCase("bool") || this.getDataType().equalsIgnoreCase("boolean")) {
+            return UIControls.CheckBox;
+        }
+
+        if (this.getDataType().equalsIgnoreCase("Image")) {
+            return UIControls.ImageView;
+        }
+
+        if (this.getDataType().equalsIgnoreCase("File")) {
+            return UIControls.TextArea;
+        }
+
+        if (this.isCollection()) {
+            if (makeEditableTable()) {
+                return UIControls.TableView;
+            } else {
+                return UIControls.TextArea;
+            }
+        }
+
+        if (this.getDataType().equalsIgnoreCase("String") || this.getDataType().equalsIgnoreCase("File")) {
+            if (this.getSize() > 100) {
+                return UIControls.TextArea;
+            }
+            return UIControls.TextField;
+        } else {
+            return UIControls.TextField;
         }
     }
 
     public String getCall() {
 
-        switch (getControlType()) {
-            case ComboBox:
-                return " get" + fieldName.get() + "()";
-            case CheckBox:
-                return " is" + fieldName.get() + "()";
-            default:
-                return " get" + fieldName.get() + "()";
-        }
+        return switch (getControlType()) {
+            case ComboBox ->
+                " get" + fieldName.get() + "()";
+            case CheckBox ->
+                " is" + fieldName.get() + "()";
+            default ->
+                " get" + fieldName.get() + "()";
+        };
     }
 
-    public String makeGetter() {
+    public String getReqCall() {
+        String fName = getReqFieldName(false);
+
+        return switch (getControlType()) {
+            case ComboBox ->
+                " get" + fName + "()";
+            case CheckBox ->
+                " is" + fName + "()";
+            default ->
+                " get" + fName + "()";
+        };
+    }
+
+    public String makeGetter(boolean forceReferences) {
         String type = this.getDataType();
         if (type.equalsIgnoreCase("bool") || type.equalsIgnoreCase("boolean")) {
             return Utilities.makeMethod("public", getUsableDataType(false), "is" + this.getFieldName(), "", "return " + this.variableName + ";");
         } else {
-            return Utilities.makeMethod("public", getUsableDataType(true), "get" + this.getFieldName(), "", "return " + this.variableName + ";");
+            return Utilities.makeMethod("public", getUsableDataType(forceReferences), "get" + this.getFieldName(), "", "return " + this.variableName + ";");
 
         }
     }
 
-    public String makeSetter() {
+    public String makeSetter(boolean forceReferences) {
         return "public ".concat("void").concat(" ").
-                concat("set").concat(getFieldName()).concat("(" + getDeclaration(true, false) + "){\n").concat("this.").
+                concat("set").concat(getFieldName()).concat("(" + getDeclaration(forceReferences, false) + "){\n").concat("this.").
                 concat(getVariableName()).concat(" = ").concat(getVariableName()).concat(";\n}");
     }
 
@@ -457,99 +645,120 @@ public class FieldDAO {
         return Utilities.getVariableName(objectName).concat(".set").concat(getFieldName()).concat("(" + variableName + ");\n");
     }
 
-    public String makeDaGetter(String objectName) {
-        String type = this.getDataType();
+    public String makeProperties(boolean forceReferences) {
+        return this.makeGetter(forceReferences) + this.makeSetter(forceReferences);
+    }
 
-        if (isCollection()) {
-            return this.makeGetter() + ""
-                    + "public List<" + getReferencesDA() + "> get" + getFieldName() + "DAs(){\n"
-                    + "       return " + getReferencesDA() + ".get" + getReferencesDA() + "s(" + Utilities.getVariableName(objectName) + "." + getCall() + ");\n"
-                    + "    }";
-        } else if (isReferance() && !isCollection()) {
-            if (this.getEnumerated()) {
-                return Utilities.makeMethod("public", "Object", "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"));
-            } else {
-                String getRef = Utilities.makeMethod("public", references.get(), "get" + this.getFieldName(), "", "return " + this.variableName + ";");
+    public List entityImports(Project currentProject, boolean considerReferences) throws Exception {
+        List list = new ArrayList();
+        if (getProjectName().isBlank()) {
+            project = currentProject;
+        } else {
+            project = oProjectDAO.get(getProjectName());
+        }
 
-                String getRefID = Utilities.makeMethod("public", "Object", "get" + this.referencesID, "", "return " + this.referencesVariableID.concat(".get();"));
-                String getRefDis = Utilities.makeMethod("public", "String", "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
-
-                return getRef + getRefID + getRefDis + referencesDAGetter();
+        this.commonProject = oProjectDAO.get(project.getCommonProjectName());
+        if (isPrimaryKey()) {
+            addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
+            if (isReferance()) {
+                if (getEnumerated()) {
+                } else {
+                    addIfNotExists(list, "import jakarta.persistence.MapsId");
+                }
             }
         }
-        if (type.equalsIgnoreCase("Object")) {
-            return Utilities.makeMethod("public", "Object", "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"));
-        } else if (type.equalsIgnoreCase("Date") || type.equalsIgnoreCase("DateTime")
-                || type.equalsIgnoreCase("LocalDate") || type.equalsIgnoreCase("LocalDateTime")) {
-            return Utilities.makeMethod("public", "Object", "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"))
-                    + Utilities.makeMethod("public", displayDataType, "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
-        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double") || type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
-            return Utilities.makeMethod("public", getUsableDataType(false), "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"))
-                    + Utilities.makeMethod("public", displayDataType, "get" + this.display, "", "return " + this.displayVariableName.concat(".get();"));
-        } else if (type.equalsIgnoreCase("bool") || type.equalsIgnoreCase("boolean")) {
-            return Utilities.makeMethod("public", getUsableDataType(false), "is" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"));
-        } else if (type.equalsIgnoreCase("Image")) {
-            return makeGetter() + "\n"
-                    + Utilities.makeMethod("public ", "ImageView", "getImv" + this.getFieldName(), "", "return " + this.getControlName() + ";");
+
+        if (isIDGenerator()) {
+            addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
+        }
+        if (isPrimaryKeyAuto()) {
+            addIfNotExists(list, "import jakarta.persistence.GeneratedValue");
+            addIfNotExists(list, "import jakarta.persistence.GenerationType");
+        } else if (isReferance()) {
+            if (!nullable.get()) {
+                addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
+            }
+
+            if (isCollection()) {
+                addIfNotExists(list, "import java.util." + getDataType());
+                addIfNotExists(list, "import jakarta.persistence.CascadeType");
+                addIfNotExists(list, "import jakarta.persistence.JoinTable");
+                if (getDataType().equalsIgnoreCase("List")) {
+                    addIfNotExists(list, "import java.util.ArrayList");
+                } else if (getDataType().equalsIgnoreCase("Set")) {
+                    addIfNotExists(list, "import java.util.HashSet");
+                }
+                if (mapping.get().isBlank()) {
+                    mapping.set("OneToMany");
+                }
+                addIfNotExists(list, "import jakarta.persistence." + mapping.get());
+
+            }
+
+            if (enumerated.get()) {
+                if (project.getProjectType().equals(Enums.ProjectTypes.Desktop)) {
+                    addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
+                }
+                if (project.getProjectType().equals(Enums.ProjectTypes.Springboot_API)) {
+
+                    String enumPackage = (referencesIN(project)) ? project.getBasePackage() : commonProject.getBasePackage();
+                    addIfNotExists(list, "import " + enumPackage + ".enums." + references.get());
+
+                }
+                addIfNotExists(list, "import jakarta.persistence.Enumerated");
+                addIfNotExists(list, "import jakarta.persistence.EnumType");
+
+            } else {
+                if (considerReferences) {
+                    if (mapping.get().isBlank() && !isCollection()) {
+                        mapping.set("OneToOne");
+                    }
+
+                    if (key.get().isBlank()) {
+                        key.set("Foreign");
+
+                    }
+                    addIfNotExists(list, "import jakarta.persistence.JoinColumn");
+                    addIfNotExists(list, "import jakarta.persistence.ForeignKey");
+                    addIfNotExists(list, "import jakarta.persistence." + mapping.get());
+
+                    if (project.getProjectType().equals(Enums.ProjectTypes.Desktop)) {
+                        if (!project.getProjectName().equalsIgnoreCase(currentProject.getProjectName())) {
+                            addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
+                        }
+                    }
+                    addIfNotExists(list, "import " + project.getBasePackage() + "." + getReferences().toLowerCase().concat(".").concat(getReferences()));
+
+                }
+            }
+        } else if (dataType.get().equalsIgnoreCase("String")) {
+            addIfNotExists(list, "import jakarta.validation.constraints.Size");
+            if (key.get().equalsIgnoreCase("Unique")) {
+
+            }
+
+            if (!nullable.get()) {
+                addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
+            }
+
         } else {
-            return Utilities.makeMethod("public", getUsableDataType(false), "get" + this.getFieldName(), "", "return " + this.variableName.concat(".get();"));
+            if (!nullable.get()) {
+                addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
+            }
+            if (dataType.get().equalsIgnoreCase("LocalDate")) {
+                addIfNotExists(list, "import java.time.LocalDate");
+            } else if (dataType.get().equalsIgnoreCase("LocalDateTime")) {
+                addIfNotExists(list, "import java.time.LocalDateTime");
+            } else if (dataType.get().equalsIgnoreCase("Image")) {
+                addIfNotExists(list, "import jakarta.persistence.Lob");
+
+            }
 
         }
+        return list;
     }
 
-    public String makeDaSetter(String objectName) {
-        String type = this.getDataType();
-
-        if (isCollection()) {
-//            return setCall(objectName)+makeSetter();
-            return "public ".concat("void").concat(" ").
-                    concat("set").concat(getFieldName()).concat("(" + getDeclaration(true, false) + "){\n").concat(setCall(objectName) + "this.").
-                    concat(getVariableName()).concat(" = ").concat(getVariableName()).concat(";\n}") + ""
-                    + " public void set" + getFieldName() + "DAs(List<" + getReferences() + "DA> " + Utilities.getVariableName(getReferences()) + "DAs) {\n"
-                    + "        this." + Utilities.getVariableName(objectName) + ".set" + getFieldName() + "(" + getReferences() + "DA.get" + getReferences() + "List(" + Utilities.getVariableName(getReferences()) + "DAs));\n"
-                    + "\n"
-                    + "    }";
-
-        } else if (isReferance() && !(this.getEnumerated() || isCollection())) {
-            return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
-                    setCall(objectName) + "this." + this.variableName.concat(" = ").concat(this.variableName).concat(";") + ""
-                    + "this." + variableName + "ID.set(" + variableName + ".getId());\n"
-                    + "        this." + variableName + "Display.set(" + variableName + ".getDisplayKey());");
-
-        } else if (type.equalsIgnoreCase("Image")) {
-            return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
-                    setCall(objectName) + "this." + this.variableName.concat(" = ").concat(this.variableName).concat(";"))
-                    + Utilities.makeMethod("public", "void", "setImv" + this.getFieldName(), getControlType() + " " + getControlName(),
-                            "this." + this.getControlName().concat(" = ").concat(this.getControlName()).concat(";"));
-        } else if (type.equalsIgnoreCase("float") || type.equalsIgnoreCase("double")) {
-            return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
-                    setCall(objectName) + "this." + this.variableName.concat(".set(" + this.variableName + ");\n"
-                    + "this." + displayVariableName.concat(".set") + "(formatNumber(" + variableName + "));"));
-
-        } else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
-            return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
-                    setCall(objectName) + "this." + this.variableName.concat(".set(" + this.variableName + ");\n"
-                    + "this." + displayVariableName.concat(".set") + "(formatInteger(" + variableName + "));"));
-
-        } else {
-            return Utilities.makeMethod("public", "void", "set" + this.getFieldName(), getDeclaration(true, false),
-                    setCall(objectName) + "this." + this.variableName.concat(".set(" + this.variableName + ");"));
-        }
-    }
-
-    public String makeProperties() {
-        return this.makeGetter() + this.makeSetter();
-    }
-
-    public String makeDAProperties(String objectName) {
-        return this.makeDaGetter(objectName) + this.makeDaSetter(objectName);
-    }
-
-    public String referencesDAGetter() {
-        return Utilities.makeMethod("public", getReferencesDA(), "get" + getFieldName() + "DA", "", "return this." + variableName + "!=null? new " + getReferencesDA() + "(this." + variableName + "):null;");
-    }
-
-    public String fiedAnnotations(String objectName, String primaryKey) {
+    public String entityAnnotation(String objectName, String primaryKeyVariableName, boolean consideredReferences) {
         String fieldAnnotation = "";
         if (saburiKey.get().equalsIgnoreCase(Saburikeys.ID_Generator.name())) {
             nullable.set(false);
@@ -565,9 +774,11 @@ public class FieldDAO {
                     fieldAnnotation += "@Column(length = " + getSize() + ")";
 
                 } else {
-                    fieldAnnotation += "@MapsId(\"" + getReferences().concat("ID") + "\")\n"
-                            + "    @OneToOne\n"
-                            + "    @JoinColumn(name = \"" + objectName.concat("ID") + "\", referencedColumnName = \"" + getReferences().concat("ID") + "\", insertable = true)";
+                    if (consideredReferences) {
+                        fieldAnnotation += "@MapsId(\"" + getReferences().concat("Id") + "\")\n"
+                                + "    @OneToOne\n"
+                                + "    @JoinColumn(name = \"" + objectName.concat("Id") + "\", referencedColumnName = \"" + getReferences().concat("ID") + "\", insertable = true)";
+                    }
                 }
             } else {
                 fieldAnnotation += "@Id\n";
@@ -588,12 +799,15 @@ public class FieldDAO {
             if (mapping.get().isBlank()) {
                 mapping.set("OneToMany");
             }
-            fieldAnnotation += "@" + mapping.get() + "(cascade = CascadeType.MERGE)"
-                    + "@JoinTable(name = \"" + objectName + getFieldName() + "\",\n"
-                    + "            joinColumns = {\n"
-                    + "                @JoinColumn(name = \"" + Utilities.getVariableName(primaryKey) + "\", nullable = false)},\n"
-                    + "            inverseJoinColumns = {\n"
-                    + "                @JoinColumn(name = \"" + Utilities.getVariableName(getReferences()) + "ID\", nullable = false)})";
+            fieldAnnotation+="@Builder.Default\n";
+            fieldAnnotation += "@" + mapping.get() + "(cascade = CascadeType.MERGE)\n";
+            if (isReferance()) {
+                fieldAnnotation += "@JoinTable(name = \"" + objectName + getFieldName() + "\",\n"
+                        + "            joinColumns = {\n"
+                        + "                @JoinColumn(name = \"" + primaryKeyVariableName + "\", nullable = false)},\n"
+                        + "            inverseJoinColumns = {\n"
+                        + "                @JoinColumn(name = \"" + Utilities.getVariableName(getReferences()) + "ID\", nullable = false)})";
+            }
 
         } else if (isReferance()
                 && !isCollection()) {
@@ -601,29 +815,29 @@ public class FieldDAO {
                 fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
             }
             if (enumerated.get()) {
-                fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
                 fieldAnnotation += "@Enumerated(EnumType.STRING)\n";
                 fieldAnnotation += "@Column(length = " + getSize() + ")";
 
             } else {
+                if (consideredReferences) {
+                    if (mapping.get().isBlank()) {
+                        mapping.set("OneToOne");
+                    }
 
-                if (mapping.get().isBlank()) {
-                    mapping.set("OneToOne");
+                    if (key.get().isBlank()) {
+                        key.set("Foreign");
+
+                    }
+
+                    column = "@JoinColumn(name = \"" + variableName.concat("Id") + "\"";
+                    column += ",foreignKey = @ForeignKey(name = \"fk" + fieldName.get().concat("Id") + objectName + "\")";
+
+                    if (key.get().equalsIgnoreCase("Unique")) {
+                        column += ",unique = true";
+                    }
+                    column += ")";
+                    fieldAnnotation += "@" + mapping.get() + "\n";
                 }
-
-                if (key.get().isBlank()) {
-                    key.set("Foreign");
-
-                }
-
-                column = "@JoinColumn(name = \"" + variableName.concat("ID") + "\"";
-                column += ",foreignKey = @ForeignKey(name = \"fk" + fieldName.get().concat("ID") + objectName + "\")";
-
-                if (key.get().equalsIgnoreCase("Unique")) {
-                    column += ",unique = true";
-                }
-                column += ")";
-                fieldAnnotation += "@" + mapping.get() + "\n";
 
             }
         } else if (saburiKey.get().equalsIgnoreCase(Saburikeys.ID_Helper.name())) {
@@ -675,107 +889,119 @@ public class FieldDAO {
         return fieldAnnotation;
     }
 
-    public List entityImports(Project currentProject) {
+    public String requestAnnotation(String objectName, String primaryKey, boolean consideredReferences) {
+        String fieldAnnotation = "";
+        if (saburiKey.get().equalsIgnoreCase(Saburikeys.ID_Generator.name())) {
+            nullable.set(false);
+        }
+
+        if (getKey().equalsIgnoreCase(keys.Primary.name())) {
+            if (isReferance()) {
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+
+            } else {
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+                if (getDataType().equalsIgnoreCase("String")) {
+                    fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
+
+                } else {
+
+                }
+            }
+        } else if (getKey().equalsIgnoreCase(keys.Primary_Auto.name())) {
+
+        } else if (isCollection()) {
+            fieldAnnotation+="@Builder.Default";
+
+        } else if (isReferance()
+                && !isCollection()) {
+            if (!nullable.get()) {
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+            }
+
+        } else if (saburiKey.get().equalsIgnoreCase(Saburikeys.ID_Helper.name())) {
+
+        } else if (dataType.get().equalsIgnoreCase("String")) {
+            fieldAnnotation += "@Size(max =  " + getSize() + ", message =  \"The field: " + getCaption() + " size cannot be greater than " + getSize() + "\")\n";
+
+            if (!nullable.get()) {
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+            }
+
+        } else if (dataType.get().equalsIgnoreCase("LocalDate") || dataType.get().equalsIgnoreCase("LocalDateTime")) {
+
+            if (!nullable.get()) {
+
+                fieldAnnotation += "@NotNull(message =\"The field: " + getCaption() + " cannot be null\")\n";
+            }
+        } else if (dataType.get().equalsIgnoreCase("int") || dataType.get().equalsIgnoreCase("Integer")
+                || dataType.get().equalsIgnoreCase("float") || dataType.get().equalsIgnoreCase("double")) {
+
+            if (!nullable.get()) {
+                fieldAnnotation += "@NotNull(message =\"The field: " + getCaption() + " cannot be null\")\n";
+            }
+            if (getKey().equalsIgnoreCase(keys.Unique.name())) {
+                fieldAnnotation += "@NotNull(message =\"The field: " + getCaption() + " cannot be null\")\n";
+            }
+
+        } else if (dataType.get().equalsIgnoreCase("Image")) {
+
+            if (!nullable.get()) {
+                fieldAnnotation += "@NotNull(message =  \"The field: " + getCaption() + " cannot be null\")\n";
+            }
+
+        }
+
+        return fieldAnnotation;
+    }
+
+    public List miniImports(Project currentProject) throws Exception {
         List list = new ArrayList();
-        if (getProjectID().isBlank()) {
+        if (getProjectName().isBlank()) {
             project = currentProject;
         }
 
-        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
-        if (isPrimaryKey()) {
-            addIfNotExists(list, "import javax.validation.constraints.NotNull");
-            if (isReferance()) {
-                if (getEnumerated()) {
-                } else {
-                    addIfNotExists(list, "import javax.persistence.MapsId");
-                }
-            }
-        }
+        this.commonProject = oProjectDAO.get(project.getCommonProjectName());
+
         if (isCollection()) {
             addIfNotExists(list, "import java.util." + getDataType());
-            addIfNotExists(list, "import javax.persistence.CascadeType");
-            addIfNotExists(list, "import javax.persistence.JoinTable");
             if (getDataType().equalsIgnoreCase("List")) {
                 addIfNotExists(list, "import java.util.ArrayList");
             } else if (getDataType().equalsIgnoreCase("Set")) {
                 addIfNotExists(list, "import java.util.HashSet");
             }
-            if (mapping.get().isBlank()) {
-                mapping.set("OneToMany");
-            }
-            addIfNotExists(list, "import javax.persistence." + mapping.get());
 
-        } else if (isPrimaryKeyAuto()) {
-            addIfNotExists(list, "import javax.persistence.GeneratedValue");
-            addIfNotExists(list, "import javax.persistence.GenerationType");
         } else if (isReferance()) {
-            if (!nullable.get()) {
-                addIfNotExists(list, "import javax.validation.constraints.NotNull");
-            }
+
             if (enumerated.get()) {
                 addIfNotExists(list, "import " + project.getUtilPackage() + "." + project.getEnumClass() + "." + references.get());
-                addIfNotExists(list, "import javax.persistence.Enumerated");
-                addIfNotExists(list, "import javax.persistence.EnumType");
 
             } else {
-
-                if (mapping.get().isBlank()) {
-                    mapping.set("OneToOne");
+                if (project.getProjectName().equalsIgnoreCase(currentProject.getProjectName())) {
+                    addIfNotExists(list, "import " + project.getBasePackage() + "." + getReferences().toLowerCase().concat(".").concat(getReferences()));
                 }
 
-                if (key.get().isBlank()) {
-                    key.set("Foreign");
-
-                }
-                addIfNotExists(list, "import javax.persistence.JoinColumn");
-                addIfNotExists(list, "import javax.persistence.ForeignKey");
-                addIfNotExists(list, "import javax.persistence." + mapping.get());
-
-                if (getReferences().equalsIgnoreCase("LookupData")) {
-                    if (commonProject.getProjectID() != currentProject.getProjectID()) {
-                        addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + references.get());
-                    }
-                } else {
-                    if (project.getProjectID() != currentProject.getProjectID()) {
-                        addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
-                    }
-                }
             }
-        } else if (dataType.get().equalsIgnoreCase("String")) {
-            addIfNotExists(list, "import javax.validation.constraints.Size");
-            if (key.get().equalsIgnoreCase("Unique")) {
-
-            }
-
-            if (!nullable.get()) {
-                addIfNotExists(list, "import javax.validation.constraints.NotNull");
-            }
-
         } else {
-            if (!nullable.get()) {
-                addIfNotExists(list, "import javax.validation.constraints.NotNull");
-            }
+
             if (dataType.get().equalsIgnoreCase("LocalDate")) {
                 addIfNotExists(list, "import java.time.LocalDate");
             } else if (dataType.get().equalsIgnoreCase("LocalDateTime")) {
                 addIfNotExists(list, "import java.time.LocalDateTime");
-            } else if (dataType.get().equalsIgnoreCase("Image")) {
-                addIfNotExists(list, "import javax.persistence.Lob");
-
             }
 
         }
         return list;
     }
 
-    public List daImports(Project currentProject) {
+    public List daImports(Project currentProject) throws Exception {
         List list = new ArrayList();
-        if (getProjectID().isBlank()) {
+        if (getProjectName().isBlank()) {
             project = currentProject;
         }
-        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
+        this.commonProject = oProjectDAO.get(project.getCommonProjectName());
 
-        if (currentProject.getProjectID() != commonProject.getProjectID() && isHelper()) {
+        if (!currentProject.getProjectName().equalsIgnoreCase(commonProject.getProjectName()) && isHelper()) {
             addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + ".IDGeneratorDA");
         }
         if (isCollection()) {
@@ -785,13 +1011,13 @@ public class FieldDAO {
                 } else {
                     if (getReferences().equalsIgnoreCase("LookupData")) {
                         addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + references.get());
-                        if (currentProject.getProjectID() != commonProject.getProjectID()) {
+                        if (!commonProject.getProjectName().equalsIgnoreCase(currentProject.getProjectName())) {
                             addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + "." + references.get() + "DA");
                         }
                     } else {
 
                         addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
-                        if (currentProject.getProjectID() != project.getProjectID()) {
+                        if (project.getProjectName().equalsIgnoreCase(currentProject.getProjectName())) {
                             addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + references.get() + "DA");
                         }
                     }
@@ -810,13 +1036,13 @@ public class FieldDAO {
                 } else {
                     if (getReferences().equalsIgnoreCase("LookupData")) {
                         addIfNotExists(list, "import " + commonProject.getEntityPackage() + "." + references.get());
-                        if (currentProject.getProjectID() != commonProject.getProjectID()) {
+                        if (!currentProject.getProjectName().equalsIgnoreCase(commonProject.getProjectName())) {
                             addIfNotExists(list, "import " + commonProject.getDBAccessPackage() + "." + references.get() + "DA");
                         }
                     } else {
 
                         addIfNotExists(list, "import " + project.getEntityPackage() + "." + references.get());
-                        if (currentProject.getProjectID() != project.getProjectID()) {
+                        if (!currentProject.getProjectName().equalsIgnoreCase(project.getProjectName())) {
                             addIfNotExists(list, "import " + project.getDBAccessPackage() + "." + references.get() + "DA");
                         }
                     }
@@ -845,37 +1071,28 @@ public class FieldDAO {
     }
 
     public String getControlName() {
-        FXControls controlType = this.getControlType();
+        UIControls controlType = this.getControlType();
         String prefix;
-        switch (controlType) {
-            case DatePicker:
-                prefix = "dtp";
-                break;
-            case CheckBox:
-                prefix = "chk";
-                break;
-            case ComboBox:
-                prefix = "cbo";
-                break;
-            case Label:
-                prefix = "lbl";
-                break;
-            case TextArea:
-                prefix = "txa";
-                break;
-
-            case ImageView:
-                prefix = "imv";
-                break;
-
-            case TableView:
-                prefix = "tbl";
-                break;
-
-            default:
-                prefix = "txt";
-                break;
-        }
+        prefix = switch (controlType) {
+            case DatePicker ->
+                "dtp";
+            case CheckBox ->
+                "chk";
+            case ComboBox ->
+                "cbo";
+            case Label ->
+                "lbl";
+            case TextArea ->
+                "txa";
+            case ImageView ->
+                "imv";
+            case FileBrowser ->
+                "txa";
+            case TableView ->
+                "tbl";
+            default ->
+                "txt";
+        };
 
         return prefix.concat(this.getFieldName());
     }
@@ -887,7 +1104,8 @@ public class FieldDAO {
             return this.references.get();
         } else if (enumerated.get()) {
             return references.get();
-        } else if (this.getDataType().equalsIgnoreCase("bool") || this.getDataType().equalsIgnoreCase("boolean")) {
+        } else if (this.getDataType().equalsIgnoreCase("bool")
+                || this.getDataType().equalsIgnoreCase("boolean")) {
             return "boolean";
         } else if (this.getDataType().equalsIgnoreCase("Image")) {
             return "byte[]";
@@ -947,7 +1165,7 @@ public class FieldDAO {
 
     public String makeSearchColumn() {
 
-        if (this.isHelper() || this.getControlType().equals(FXControls.ImageView) || isCollection()) {
+        if (this.isHelper() || this.getControlType().equals(UIControls.ImageView) || isCollection()) {
             return "";
         }
 
@@ -966,7 +1184,7 @@ public class FieldDAO {
 
 //    controller Specific
     public String getControlLibary() {
-        if (getControlType().equals(FXControls.ImageView)) {
+        if (getControlType().equals(UIControls.ImageView)) {
             return "import javafx.scene.image.";
         } else {
             return "import javafx.scene.control.";
@@ -995,10 +1213,10 @@ public class FieldDAO {
     public List ControllerImports(String objectName, Project currentProject) throws Exception {
         String controlLiberay = getControlLibary();
 
-        if (getProjectID().isBlank()) {
+        if (getProjectName().isBlank()) {
             project = currentProject;
         }
-        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
+        this.commonProject = oProjectDAO.get(project.getCommonProjectName());
         List list = new ArrayList();
         addIfNotExists(list, controlLiberay.concat(this.getControlType().name()));
         if (isCollection()) {
@@ -1019,7 +1237,7 @@ public class FieldDAO {
                         if ((d.getDataType().equalsIgnoreCase("float"))) {
                             addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.defortFloat");
                         }
-                        
+
                         if ((d.getDataType().equalsIgnoreCase("float") || d.getDataType().equalsIgnoreCase("double"))) {
                             addIfNotExists(list, "import static " + commonProject.getUtilPackage() + ".Utilities.defortNumberOptional");
                         }
@@ -1171,7 +1389,7 @@ public class FieldDAO {
                     + "            " + field.getControlName() + ".refresh();\n"
                     + "            addRowOnce(" + field.getControlName() + ",new " + field.getReferencesDA() + "());\n"
                     + "        });";
-        }else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
+        } else if (type.equalsIgnoreCase("int") || type.equalsIgnoreCase("Integer")) {
             body += getColumnName(field.getReferences()) + ".setCellFactory(EditCell.StringTableColumn());";
             body += getColumnName(field.getReferences()) + ".setOnEditCommit(event -> {\n"
                     + "            final String value = event.getNewValue() != null ? event.getNewValue()\n"
@@ -1397,15 +1615,19 @@ public class FieldDAO {
             return "";
         }
         switch (getControlType()) {
-            case ComboBox:
+            case ComboBox -> {
                 return getControlName() + ".setValue(" + value + ");\n";
-            case DatePicker:
+            }
+            case DatePicker -> {
                 return getControlName() + ".setValue((" + getDataType() + ")" + value + ");\n";
-            case CheckBox:
+            }
+            case CheckBox -> {
                 return getControlName() + ".setSelected(" + value + ");\n";
-            case ImageView:
+            }
+            case ImageView -> {
                 return "setImage(" + getControlName() + ", " + value + ");\n";
-            default:
+            }
+            default -> {
                 if (getDataType().equalsIgnoreCase("int") || getDataType().equalsIgnoreCase("Integer")) {
                     return getControlName() + ".setText(String.valueOf(" + value + "));\n";
                 } else if (getDataType().equalsIgnoreCase("float") || getDataType().equalsIgnoreCase("double")) {
@@ -1413,6 +1635,7 @@ public class FieldDAO {
                 } else {
                     return getControlName() + ".setText(" + value + ");\n";
                 }
+            }
         }
     }
 
@@ -1469,6 +1692,14 @@ public class FieldDAO {
                         + "                </VBox>\n"
                         + "            </HBox>";
                 break;
+            case FileBrowser:
+                line = " <Label id=\"" + id + "\" fx:id=\"lbl" + getFieldName() + "\" "
+                        + "minWidth=\"100\" text=\"" + getCaption() + "\" GridPane.columnIndex=\"" + columnIndex + "\" GridPane.rowIndex=\"" + rowIndex + "\" />\n";
+                line += "  <HBox spacing=\"2\" GridPane.columnIndex=\"" + (columnIndex + 1) + "\" GridPane.rowIndex=\"" + rowIndex + "\">\n"
+                        + "                <TextArea fx:id = \"" + getControlName() + "\" id = \"Project\"  prefWidth=\"250\" prefHeight=\"50\" promptText = \"Enter " + getCaption() + "\"/> \n"
+                        + "            <Button fx:id=\"btn" + getFieldName() + "\" prefWidth=\"60.0\" text=\"Browse\" />\n"
+                        + "            </HBox>";
+                break;
             case Label:
                 line += " text = \"" + getCaption() + "\"/>";
                 break;
@@ -1500,13 +1731,11 @@ public class FieldDAO {
                 + "GridPane.columnIndex = \"" + (columnIndex + 1) + "\" ";
 
         switch (getControlType()) {
-            case DatePicker:
+            case DatePicker ->
                 line += "minWidth=\"185.0\"/>";
-                break;
-            case CheckBox:
+            case CheckBox ->
                 line += "/>";
-                break;
-            case ComboBox:
+            case ComboBox -> {
                 line += "promptText = \"Select " + getCaption() + "\" minWidth=\"185.0\"";
                 line += ">\n<contextMenu>\n"
                         + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
@@ -1517,9 +1746,8 @@ public class FieldDAO {
                         + "</ContextMenu>\n"
                         + " </contextMenu>\n"
                         + "</" + getControlType() + "> ";
-
-                break;
-            case ImageView:
+            }
+            case ImageView -> {
                 line = " <Label id=\"" + id + "\" fx:id=\"lbl" + getFieldName() + "\" "
                         + "minWidth=\"100\" text=\"" + getCaption() + "\" GridPane.columnIndex=\"" + columnIndex + "\" GridPane.rowIndex=\"" + rowIndex + "\" />\n";
                 line += " <HBox alignment=\"center\" spacing=\"10\" GridPane.columnIndex=\"" + (columnIndex + 1) + "\" GridPane.rowIndex=\"" + rowIndex + "\""
@@ -1536,11 +1764,10 @@ public class FieldDAO {
                         + "                    <Button fx:id=\"btnClear" + getFieldName() + "\" id=\"" + id + "\" minWidth=\"100\" text=\"Clear\" /> \n"
                         + "                </VBox>\n"
                         + "            </HBox>";
-                break;
-            case Label:
+            }
+            case Label ->
                 line += " minWidth=\"100\"  text = \"" + getCaption() + "\"/>";
-                break;
-            case TextField:
+            case TextField -> {
                 line += " minWidth=\"100\" promptText = \"Enter " + getCaption() + "\">";
                 line += "\n<contextMenu>\n"
                         + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
@@ -1550,8 +1777,8 @@ public class FieldDAO {
                         + "</ContextMenu>\n"
                         + " </contextMenu>\n"
                         + "</" + getControlType() + "> ";
-                break;
-            case TextArea:
+            }
+            case TextArea -> {
                 line += " minWidth=\"100\" promptText = \"Enter " + getCaption() + "\">";
                 line += "\n<contextMenu>\n"
                         + "  <ContextMenu fx:id =\"cmuSelect" + getFieldName() + "\" id = \"" + id + "\">\n"
@@ -1561,12 +1788,13 @@ public class FieldDAO {
                         + "</ContextMenu>\n"
                         + " </contextMenu>\n"
                         + "</" + getControlType() + "> ";
-                break;
-            case TableView:
+            }
+            case TableView -> {
                 return "";
+            }
 
-            default:
-                break;
+            default -> {
+            }
         }
 
         return line;
@@ -1706,10 +1934,14 @@ public class FieldDAO {
             return "";
         }
 
-        if (getProjectID().isBlank()) {
+        if (getProjectName().isBlank()) {
             project = currentProject;
         }
-        this.commonProject = oProjectDAO.find(project.getCommonProjectID());
+        try {
+            this.commonProject = oProjectDAO.get(project.getCommonProjectName());
+        } catch (Exception ex) {
+            Logger.getLogger(FieldDAO.class.getName()).log(Level.SEVERE, null, ex);
+        }
         String mainClass;
         if (getReferences().equalsIgnoreCase("LookupData")) {
             mainClass = commonProject.getNavigationClass() + ".MAIN_CLASS";

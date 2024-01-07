@@ -15,11 +15,9 @@ import com.saburi.utils.SearchTree;
 import java.io.IOException;
 import java.net.URL;
 import java.util.ResourceBundle;
-import javafx.collections.ObservableSet;
 import javafx.event.ActionEvent;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.print.Printer;
 import javafx.print.PrinterJob;
 import javafx.scene.Parent;
 import javafx.scene.control.Button;
@@ -39,7 +37,7 @@ public class SceneController implements Initializable {
     @FXML
     Button btnPrint;
     @FXML
-    private MenuItem mniSetting, mniProject, mniView, spmProjectAdd, spmProjectView;
+    private MenuItem mniSetting, mniView, spmProjectAdd, spmProjectView;
     @FXML
     private Label lblStatusBar;
 

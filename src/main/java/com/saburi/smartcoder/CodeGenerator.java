@@ -7,6 +7,8 @@ package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
 import com.saburi.model.Field;
+import com.saburi.model.Project;
+import com.saburi.utils.Enums.ProjectTypes;
 import java.util.Arrays;
 import java.util.List;
 import javafx.collections.FXCollections;
@@ -18,13 +20,19 @@ import javafx.collections.transformation.FilteredList;
  */
 public class CodeGenerator {
 
-    protected List<FieldDAO> defaulFields = Arrays.asList(new FieldDAO(new Field("UserID", "User ID", "String")),
-            new FieldDAO(new Field("UserFullName", "User Full Name", "String")),
-            new FieldDAO(new Field("ClientMachine", "Client Machine", "String")),
-            new FieldDAO(new Field("RecordDateTime", "Record Date Time", "LocalDateTime")),
-            new FieldDAO(new Field("LastUpdateDateTime", "Last Update", "LocalDateTime")));
+    public CodeGenerator() {
+       
+    }
+    
+    public List<FieldDAO> getDefailtFields() throws Exception{
+      return Arrays.asList(new FieldDAO(new Field("UserID", "User ID", "String")),
+                    new FieldDAO(new Field("UserFullName", "User Full Name", "String")),
+                    new FieldDAO(new Field("ClientMachine", "Client Machine", "String")),
+                    new FieldDAO(new Field("RecordDateTime", "Record Date Time", "LocalDateTime")),
+                    new FieldDAO(new Field("LastUpdateDateTime", "Last Update", "LocalDateTime")));
+    }
 
-    public boolean validate(List<FieldDAO> fields) throws Exception {
+    public static boolean  validate(List<FieldDAO> fields, Project project) throws Exception {
         try {
 
             FilteredList<FieldDAO> primaryKeyList = new FilteredList<>(FXCollections.observableList(fields), e -> true);
@@ -33,17 +41,16 @@ public class CodeGenerator {
             if (fields.isEmpty()) {
                 throw new Exception("Must include atleast one item to continue");
             }
-            if (primaryKeyList.isEmpty()) {
+            if (primaryKeyList.isEmpty() && project.getProjectType().equals(ProjectTypes.Desktop)) {
                 throw new Exception("You must enter a primary key");
             }
             if (primaryKeyList.size() > 1) {
                 throw new Exception("Composite primary key is not allowed. Please select a primary key");
             }
-            
-            
-            for (FieldDAO pk: primaryKeyList){
-                if(pk.isPrimaryKeyAuto()&& !(pk.getDataType().toLowerCase().contains("int"))){
-                throw new Exception("Un suppported data type" + pk.getDataType() + " auto generated Id. Please use int instead");
+
+            for (FieldDAO pk : primaryKeyList) {
+                if (pk.isPrimaryKeyAuto() && !(pk.getDataType().toLowerCase().contains("int"))) {
+                    throw new Exception("Un suppported data type" + pk.getDataType() + " auto generated Id. Please use int instead");
                 }
             }
 
@@ -73,7 +80,7 @@ public class CodeGenerator {
                     throw new Exception("You cannot have more than 1 ID Generators");
                 } else {
 
-                    if (helperList.isEmpty()) {
+                    if (helperList.isEmpty() && project.getProjectType().equals(ProjectTypes.Desktop)) {
                         throw new Exception("You cannot have ID Generator with ID Helper");
                     }
                 }

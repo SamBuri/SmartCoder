@@ -5,6 +5,7 @@
  */
 package com.saburi.model;
 
+import com.saburi.utils.Enums.ProjectTypes;
 import java.util.Objects;
 
 /**
@@ -13,9 +14,13 @@ import java.util.Objects;
  */
 public class Project extends Model {
 
-    private int projectID;
+    private ProjectTypes projectType;
     private String projectName;
-    private int commonProjectID;
+    private String basePackage;
+    private String baseFolder;
+    private String testFolder;
+
+    private String commonProjectName;
     private String entityPackage;
     private String dBAccessPackage;
     private String contollerPackage;
@@ -35,10 +40,16 @@ public class Project extends Model {
     public Project() {
     }
 
-    public Project(int projectID, String projectName, int commonProjectID, String entityPackage, String dBAccessPackage, String contollerPackage, String utilPackage, String enumClass, String objectNameClass, String navigationClass, String entityFolder, String dBAcessFolder, String controllerFolder, String resourceFolder, String menuControllerFile, String searchTreeFile, String menuUIFile, String sQLFile) {
-        this.projectID = projectID;
+    public Project(ProjectTypes projectType, String projectName, String basePackage, String baseFolder, String testFolder,
+            String commonProjectName, String entityPackage, String dBAccessPackage, String contollerPackage, String utilPackage,
+            String enumClass, String objectNameClass, String navigationClass, String entityFolder, String dBAcessFolder,
+            String controllerFolder, String resourceFolder, String menuControllerFile, String searchTreeFile, String menuUIFile, String sQLFile) {
+        this.projectType = projectType;
         this.projectName = projectName;
-        this.commonProjectID = commonProjectID;
+        this.basePackage = basePackage;
+        this.baseFolder = baseFolder;
+        this.testFolder = testFolder;
+        this.commonProjectName = commonProjectName;
         this.entityPackage = entityPackage;
         this.dBAccessPackage = dBAccessPackage;
         this.contollerPackage = contollerPackage;
@@ -57,32 +68,82 @@ public class Project extends Model {
 
     }
 
-    public int getProjectID() {
-        return projectID;
+    public ProjectTypes getProjectType() {
+        return projectType;
     }
 
-    public String getProjectIDDisplay() {
-        return String.valueOf(this.projectID);
-    }
-
-    public void setProjectID(int projectID) {
-        this.projectID = projectID;
+    public void setProjectType(ProjectTypes projectType) {
+        this.projectType = projectType;
     }
 
     public String getProjectName() {
         return projectName;
     }
 
+    public String getBasePackage() {
+        return basePackage;
+    }
+
+    public void setBasePackage(String basePackage) {
+        this.basePackage = basePackage;
+    }
+
+    public String getBaseFolder() {
+        return baseFolder;
+    }
+
+    public void setBaseFolder(String baseFolder) {
+        this.baseFolder = baseFolder;
+    }
+
+    public String getTestFolder() {
+        return testFolder;
+    }
+
+    public void setTestFolder(String testFolder) {
+        this.testFolder = testFolder;
+    }
+    
+    
+
+    public String getdBAccessPackage() {
+        return dBAccessPackage;
+    }
+
+    public void setdBAccessPackage(String dBAccessPackage) {
+        this.dBAccessPackage = dBAccessPackage;
+    }
+
+    public String getdBAcessFolder() {
+        return dBAcessFolder;
+    }
+
+    public void setdBAcessFolder(String dBAcessFolder) {
+        this.dBAcessFolder = dBAcessFolder;
+    }
+
+    public String getsQLFile() {
+        return sQLFile;
+    }
+
+    public void setsQLFile(String sQLFile) {
+        this.sQLFile = sQLFile;
+    }
+
+    public String getProjectIDDisplay() {
+        return this.projectName;
+    }
+
     public void setProjectName(String projectName) {
         this.projectName = projectName;
     }
 
-    public int getCommonProjectID() {
-        return commonProjectID;
+    public String getCommonProjectName() {
+        return commonProjectName;
     }
 
-    public void setCommonProjectID(int commonProjectID) {
-        this.commonProjectID = commonProjectID;
+    public void setCommonProjectID(String commonProjectName) {
+        this.commonProjectName = commonProjectName;
     }
 
     public String getEntityPackage() {
@@ -216,18 +277,18 @@ public class Project extends Model {
 
         Project project = (Project) o;
 
-        return this.getProjectID() == project.getProjectID();
+        return this.getProjectName().equalsIgnoreCase(project.getProjectName());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hashCode(this.projectID);
+        return Objects.hashCode(this.projectName);
 
     }
 
     @Override
     public Object getId() {
-        return this.projectID;
+        return this.projectName;
     }
 
     @Override

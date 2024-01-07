@@ -6,30 +6,34 @@ package com.saburi.controller;
 
 import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
+import com.saburi.utils.Enums;
+import com.saburi.utils.Enums.ProjectTypes;
 import static com.saburi.utils.FXUIUtils.browseDirectory;
 import static com.saburi.utils.FXUIUtils.browseFile;
 import static com.saburi.utils.FXUIUtils.errorMessage;
-import static com.saburi.utils.FXUIUtils.getInt;
+import static com.saburi.utils.FXUIUtils.getSelectedValue;
 import static com.saburi.utils.FXUIUtils.getText;
 import static com.saburi.utils.FXUIUtils.message;
-import static com.saburi.utils.FXUIUtils.validateIteger;
+import com.saburi.utils.Utilities;
 import java.net.URL;
-import java.util.List;
-import java.util.Optional;
+import java.util.Arrays;
 import java.util.ResourceBundle;
+import java.util.stream.Collectors;
+import javafx.collections.FXCollections;
 import javafx.fxml.FXML;
 import javafx.scene.control.Button;
+import javafx.scene.control.ComboBox;
 import javafx.scene.control.TextArea;
 import javafx.scene.control.TextField;
 
 public class ProjectController extends EditController {
 
     @FXML
-    private TextField txtProjectID;
+    private ComboBox<Enums.ProjectTypes> cboProjectType;
     @FXML
     private TextField txtProjectName;
     @FXML
-    private TextField txtCommonProjectID;
+    private ComboBox cboCommonProjectName;
     @FXML
     private TextField txtEntityPackage;
     @FXML
@@ -43,10 +47,10 @@ public class ProjectController extends EditController {
     @FXML
     private TextField txtObjectNameClass;
     @FXML
-    private TextField txtNavigationClass;
+    private TextField txtNavigationClass, txtBasePackage;
 
     @FXML
-    private TextArea txaEntityFolder;
+    private TextArea txaEntityFolder, txaBaseFolder, txaTestFolder;
     @FXML
     private TextArea txaDBAcessFolder;
     @FXML
@@ -63,22 +67,23 @@ public class ProjectController extends EditController {
     private TextArea txaSQLFile;
 
     @FXML
-    private Button btnEntityFolder, btnDBAcessFolder, btnControllerFolder, btnResourceFolder,
+    private Button btnBaseFolder, btnTestFolder, btnEntityFolder, btnDBAcessFolder, btnControllerFolder, btnResourceFolder,
             btnMenuControllerFile, btnSearchTreeFile, btnMenuUIFile, btnSQLFile;
     private final ProjectDAO oProjectDA = new ProjectDAO();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
         try {
-            validateIteger(txtProjectID);
-            validateIteger(txtCommonProjectID);
-            txtProjectID.focusedProperty().addListener((ov, t, t1) -> {
+
+            txtProjectName.focusedProperty().addListener((ov, t, t1) -> {
                 if (t) {
                     loadData();
                 }
 
             });
-
+            cboProjectType.setItems(FXCollections.observableArrayList(ProjectTypes.values()));
+            browseDirectory(btnBaseFolder, txaBaseFolder);
+            browseDirectory(btnTestFolder, txaTestFolder);
             browseDirectory(btnEntityFolder, txaEntityFolder);
             browseDirectory(btnDBAcessFolder, txaDBAcessFolder);
             browseDirectory(btnControllerFolder, txaControllerFolder);
@@ -87,8 +92,15 @@ public class ProjectController extends EditController {
             browseFile(btnMenuControllerFile, txaMenuControllerFile);
             browseFile(btnSQLFile, txaSQLFile);
             browseFile(btnSearchTreeFile, txaSearchTreeFile);
-            this.primaryKeyControl = txtProjectID;
+            this.primaryKeyControl = txtProjectName;
             this.dbAccess = oProjectDA;
+
+            cboProjectType.setOnAction(e -> {
+
+                projectTypeSeleted();
+
+            });
+
             //this.minSize = 360;
         } catch (Exception e) {
             errorMessage(e);
@@ -100,26 +112,34 @@ public class ProjectController extends EditController {
     protected void save() {
         try {
             this.editSuccessful = false;
-            int projectID = getInt(txtProjectID, "Project ID");
             String projectName = getText(txtProjectName, "Project Name");
-            int commonProjectID = getInt(txtCommonProjectID, "Common Project ID");
-            String entityPackage = getText(txtEntityPackage, "Entity Package");
-            String dBAccessPackage = getText(txtDBAccessPackage, "DB Access Package");
-            String contollerPackage = getText(txtContollerPackage, "Controller Package");
-            String utilPackage = getText(txtUtilPackage, "Util Package");
-            String enumClass = getText(txtEnumClass, "Enum Class");
-            String objectNameClass = getText(txtObjectNameClass, "Object Name Class");
-            String navigationClass = getText(txtNavigationClass, "Navigation Class");
-            String entityFolder = getText(txaEntityFolder, "Entity Folder");
-            String dBAcessFolder = getText(txaDBAcessFolder, "DB Access Folder");
-            String controllerFolder = getText(txaControllerFolder, "Controller Folder");
-            String resourceFolder = getText(txaResourceFolder, "Resource Folder");
-            String menuControllerFile = getText(txaMenuControllerFile, "Menu Controller File");
-            String searchTreeFile = getText(txaSearchTreeFile, "Search Tree File");
-            String menuUIFile = getText(txaMenuUIFile, "Menu UI File");
-            String sQLFile = getText(txaSQLFile, "SQL File");
+            ProjectTypes projectType = (ProjectTypes) getSelectedValue(cboProjectType, "Project Type");
+            
+            boolean forceCommonProject=projectType.equals(ProjectTypes.Vue)?false:cboCommonProjectName.getItems().size()>0;
+            String commonProjectName = getText(cboCommonProjectName, "Common Project Name", forceCommonProject);
+            commonProjectName =Utilities.isNullOrEmpty(commonProjectName)?projectName:commonProjectName;
+            boolean isDesktop = projectType.equals(ProjectTypes.Desktop);
+            String basePackage = getText(txtBasePackage, "Base Package");
+            String baseFolder = getText(txaBaseFolder, "Base Folder");
+            String testFolder = getText(txaTestFolder, "Test Folder");
 
-            Project project = new Project(projectID, projectName, commonProjectID, entityPackage, dBAccessPackage, contollerPackage, utilPackage, enumClass, objectNameClass, navigationClass, entityFolder, dBAcessFolder, controllerFolder, resourceFolder, menuControllerFile, searchTreeFile, menuUIFile, sQLFile);
+            String entityPackage = getText(txtEntityPackage, "Entity Package", isDesktop);
+            String dBAccessPackage = getText(txtDBAccessPackage, "DB Access Package", isDesktop);
+            String contollerPackage = getText(txtContollerPackage, "Controller Package", isDesktop);
+            String utilPackage = getText(txtUtilPackage, "Util Package", isDesktop);
+            String enumClass = getText(txtEnumClass, "Enum Class", isDesktop);
+            String objectNameClass = getText(txtObjectNameClass, "Object Name Class", isDesktop);
+            String navigationClass = getText(txtNavigationClass, "Navigation Class", isDesktop);
+            String entityFolder = getText(txaEntityFolder, "Entity Folder", isDesktop);
+            String dBAcessFolder = getText(txaDBAcessFolder, "DB Access Folder", isDesktop);
+            String controllerFolder = getText(txaControllerFolder, "Controller Folder", isDesktop);
+            String resourceFolder = getText(txaResourceFolder, "Resource Folder", isDesktop);
+            String menuControllerFile = getText(txaMenuControllerFile, "Menu Controller File", isDesktop);
+            String searchTreeFile = getText(txaSearchTreeFile, "Search Tree File", isDesktop);
+            String menuUIFile = getText(txaMenuUIFile, "Menu UI File", isDesktop);
+            String sQLFile = getText(txaSQLFile, "SQL File", isDesktop);
+
+            Project project = new Project(projectType, projectName, basePackage, baseFolder, testFolder, commonProjectName, entityPackage, dBAccessPackage, contollerPackage, utilPackage, enumClass, objectNameClass, navigationClass, entityFolder, dBAcessFolder, controllerFolder, resourceFolder, menuControllerFile, searchTreeFile, menuUIFile, sQLFile);
             ProjectDAO projectDAO = new ProjectDAO(project);
             projectDAO.save();
             this.dbAccess = projectDAO;
@@ -132,23 +152,23 @@ public class ProjectController extends EditController {
         }
     }
 
-    
     @Override
     public void loadData() {
         try {
-            if (txtProjectID.getText().isBlank()) {
-                clear();
+            clear(Arrays.asList(txtProjectName));
+            if (txtProjectName.getText().isBlank()) {
                 return;
             }
-            int projectID = getInt(txtProjectID, "Project ID");
-            List<Project> projects = oProjectDA.read();
-            Optional<Project> optionalProject = projects.parallelStream().filter(p -> (p).getProjectID() == projectID)
-                    .findFirst();
-            if (optionalProject.isPresent()) {
-                Project project = optionalProject.get();
-                txtProjectID.setText(String.valueOf(project.getProjectID()));
+            String projectName = getText(txtProjectName, "Project Name");
+            Project project = oProjectDA.get(projectName);
+            if (project != null) {
+                txtProjectName.setText(String.valueOf(project.getProjectName()));
+                cboProjectType.setValue(project.getProjectType());
                 txtProjectName.setText(project.getProjectName());
-                txtCommonProjectID.setText(String.valueOf(project.getCommonProjectID()));
+                txtBasePackage.setText(project.getBasePackage());
+                txaBaseFolder.setText(project.getBaseFolder());
+                txaTestFolder.setText(project.getTestFolder());
+                cboCommonProjectName.setValue(project.getCommonProjectName());
                 txtEntityPackage.setText(project.getEntityPackage());
                 txtDBAccessPackage.setText(project.getDBAccessPackage());
                 txtContollerPackage.setText(project.getContollerPackage());
@@ -164,6 +184,8 @@ public class ProjectController extends EditController {
                 txaSearchTreeFile.setText(project.getSearchTreeFile());
                 txaMenuUIFile.setText(project.getMenuUIFile());
                 txaSQLFile.setText(project.getSQLFile());
+                
+                this.projectTypeSeleted();
 
             }
 
@@ -173,25 +195,18 @@ public class ProjectController extends EditController {
 
     }
 
-    private void clear() {
-        txtProjectName.clear();
-        txtCommonProjectID.clear();
-        txtEntityPackage.clear();
-        txtDBAccessPackage.clear();
-        txtContollerPackage.clear();
-        txtUtilPackage.clear();
-        txtEnumClass.clear();
-        txtObjectNameClass.clear();
-        txtNavigationClass.clear();
-        txaEntityFolder.clear();
-        txaDBAcessFolder.clear();
-        txaControllerFolder.clear();
-        txaResourceFolder.clear();
-        txaMenuControllerFile.clear();
-        txaSearchTreeFile.clear();
-        txaMenuUIFile.clear();
-        txaSQLFile.clear();
+    private void projectTypeSeleted() {
+        try {
+            ProjectTypes projectType = cboProjectType.getValue();
+
+            cboCommonProjectName.setItems(FXCollections.observableList(oProjectDA.read()
+                    .stream()
+                    .filter((p) -> projectType != null ? p.getProjectType().equals(projectType) : true)
+                    .map(Project::getProjectName)
+                    .collect(Collectors.toList())));
+        } catch (Exception ex) {
+            errorMessage(ex);
+        }
 
     }
-
 }

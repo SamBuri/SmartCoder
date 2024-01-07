@@ -5,47 +5,40 @@
  */
 package com.saburi.model;
 
-import java.io.FileReader;
-import java.io.FileWriter;
-import java.io.IOException;
-import java.util.Properties;
-import java.util.logging.Level;
-import java.util.logging.Logger;
-
 /**
  *
  * @author CLINICMASTER13
  */
-public class Settings {
+public class Settings extends Model{
 
-    private static Settings AppSettings;
-    private static final String FILE_NAME = "AppSettings.properties";
-    private static final Properties PROPERTIES = new Properties();
-    private static int lineBreak;
-    private static int miniLineBreak;
+//    private static Settings AppSettings;
+//    private static final String FILE_NAME = "AppSettings.properties";
+//    private static final Properties PROPERTIES = new Properties();
+    private  int lineBreak = 12;
+    private  int miniLineBreak=6;
 
     public Settings() {
     }
 
     public Settings(int lineBreak, int miniLineBreak) {
-        Settings.lineBreak = lineBreak;
-        Settings.miniLineBreak = miniLineBreak;
+        this.lineBreak = lineBreak;
+        this.miniLineBreak = miniLineBreak;
     }
 
-    public static Settings getAppSettings() {
-        return AppSettings;
-    }
-
-    public static void setAppSettings(Settings aAppSettings) {
-        AppSettings = aAppSettings;
-    }
+//    public static Settings getAppSettings() {
+//        return AppSettings;
+//    }
+//
+//    public static void setAppSettings(Settings aAppSettings) {
+//        AppSettings = aAppSettings;
+//    }
 
     public int getLineBreak() {
         return lineBreak;
     }
 
     public void setLineBreak(int lineBreak) {
-        Settings.lineBreak = lineBreak;
+        this.lineBreak = lineBreak;
     }
 
     public int getMiniLineBreak() {
@@ -53,30 +46,45 @@ public class Settings {
     }
 
     public void setMiniLineBreak(int miniLineBreak) {
-        Settings.miniLineBreak = miniLineBreak;
+        this.miniLineBreak = miniLineBreak;
+    }
+    
+    
+    
+    
+
+//    public static void writeProperties(Settings settings) {
+//        FileWriter writer;
+//        try {
+//            writer = new FileWriter(FILE_NAME);
+//            PROPERTIES.setProperty("LineBreaker", String.valueOf(settings.getLineBreak()));
+//            PROPERTIES.setProperty("MinLineBreaker", String.valueOf(settings.getMiniLineBreak()));
+//            PROPERTIES.store(writer, null);
+//            writer.close();
+//        } catch (IOException ex) {
+//            Logger.getLogger(Settings.class.getName()).log(Level.SEVERE, null, ex);
+//        }
+//
+//    }
+//
+//    public static Settings readProperties() throws Exception {
+//        try (FileReader reader = new FileReader(FILE_NAME)) {
+//            PROPERTIES.load(reader);
+//            lineBreak = Integer.parseInt(PROPERTIES.getOrDefault("LineBreaker", 15).toString());
+//            miniLineBreak = Integer.parseInt(PROPERTIES.getOrDefault("MinLineBreaker", 6).toString());
+//        }
+//        return new Settings(lineBreak, miniLineBreak);
+//    }
+
+    @Override
+    public String getDisplay() {
+        return String.valueOf(this.getLineBreak()).concat(String.valueOf(this.getMiniLineBreak()));
     }
 
-    public static void writeProperties(Settings settings) {
-        FileWriter writer;
-        try {
-            writer = new FileWriter(FILE_NAME);
-            PROPERTIES.setProperty("LineBreaker", String.valueOf(settings.getLineBreak()));
-            PROPERTIES.setProperty("MinLineBreaker", String.valueOf(settings.getMiniLineBreak()));
-            PROPERTIES.store(writer, null);
-            writer.close();
-        } catch (IOException ex) {
-            Logger.getLogger(Settings.class.getName()).log(Level.SEVERE, null, ex);
-        }
-
-    }
-
-    public static Settings readProperties() throws Exception {
-        try (FileReader reader = new FileReader(FILE_NAME)) {
-            PROPERTIES.load(reader);
-            lineBreak = Integer.parseInt(PROPERTIES.getOrDefault("LineBreaker", 15).toString());
-            miniLineBreak = Integer.parseInt(PROPERTIES.getOrDefault("MinLineBreaker", 6).toString());
-        }
-        return new Settings(lineBreak, miniLineBreak);
+    @Override
+    public Object getId() {
+        return this.getDisplay();
+       
     }
 
    

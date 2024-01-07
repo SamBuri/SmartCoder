@@ -10,16 +10,10 @@ package com.saburi.model;
  * @author Hp
  */
 public  abstract class Model {
-    protected transient Object id;
-    protected transient String display;
+   
+    public abstract Object getId();
 
-    public Object getId() {
-        return id;
-    }
-
-    public String getDisplay() {
-        return display;
-    }
+    public abstract String getDisplay();
     
     
   
