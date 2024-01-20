@@ -658,7 +658,7 @@ public class SmartCoderController implements Initializable {
                 }
             }
         }
-        outputFolder = outputFolder.toLowerCase();
+       
         makeDirectory(outputFolder);
         return outputFolder;
     }

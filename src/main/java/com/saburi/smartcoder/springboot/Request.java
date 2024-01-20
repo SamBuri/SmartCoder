@@ -120,7 +120,7 @@ public class Request extends CodeGenerator {
 
     private String makeImports(Project project) throws Exception {
 
-        String imp = "import lombok.Builder;\n";
+        String imp = "import lombok.Builder;\nimport lombok.Data;\n";
 
         List<String> imports = new ArrayList();
         for (FieldDAO t : this.fields) {
@@ -241,9 +241,9 @@ public class Request extends CodeGenerator {
         String packageName = isNullOrEmpty(entityPackage)
                 ? project.getBasePackage() + "." + objectName.toLowerCase().concat(".dtos") : entityPackage;
         JavaClass javaClass = new JavaClass(packageName, className, this.makeImports(project),
-                this.makeAnnotedFields(), constructor, this.makeProperties(), methods);
+                this.makeAnnotedFields(), "", "", methods);
         
-        return javaClass.makeClass("", "@Builder");
+        return javaClass.makeClass("", "@Builder\n@Data\n");
     }
 
 }

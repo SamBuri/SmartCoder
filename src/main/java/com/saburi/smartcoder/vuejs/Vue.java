@@ -171,9 +171,10 @@ public class Vue {
 
     private String dialog(FieldDAO fieldDAO) {
         String variable = fieldDAO.getVariableName();
+        String referenceVariableName = Utilities.getVariableName(fieldDAO.getReferences());
         return "<v-dialog v-model=\"" + dialogModelVariableName(fieldDAO) + "\" persistent :max-with=\"600\">\n"
                 + "        <search-mini :mtdsProvided=\"mtdsProvided\" @ok=\"" + variable + "Ok\" @close=\"" + variable + "Close\" :items=\"$store.state." + getStateVariable(fieldDAO) + "\"\n"
-                + "          :headers=\"" + variable + "Nav.menu.miniHeaders\" />\n"
+                + "          :headers=\"" + referenceVariableName + "Nav.menu.miniHeaders\" />\n"
                 + "      </v-dialog>\n";
     }
 
