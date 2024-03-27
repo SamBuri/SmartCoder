@@ -167,19 +167,15 @@ public class SmartCoderController implements Initializable {
                 if (Utilities.isNullOrEmpty(fileName)) {
                     return;
                 }
-                String objectName = fileName.substring(0, fileName.length() - 4);
-                txtObjectName.setText(objectName);
-                txtObjectCaption.setText(objectName);
-                tblSaburiTools.getItems().clear();
+
+                setObjectNameText(fileName);
             });
             btnImport.setOnAction(e -> {
                 this.loadTable();
                 String path = txtFileName.getText();
                 File file = new File(path);
                 String fileName = file.getName();
-                String objectName = fileName.substring(0, fileName.length() - 4);
-                txtObjectName.setText(objectName);
-                txtObjectCaption.setText(objectName);
+                setObjectNameText(fileName);
                 btnSave.visibleProperty().bind(Bindings.size(tblSaburiTools.getItems()).greaterThan(0));
 
             });
@@ -287,6 +283,14 @@ public class SmartCoderController implements Initializable {
             errorMessage(e);
         }
 
+    }
+
+
+    private void setObjectNameText(String fileName){
+        int dotIndex = fileName.indexOf('.');
+        String objectName = dotIndex<0?fileName:fileName.substring(0, dotIndex);
+        txtObjectName.setText(objectName);
+        txtObjectCaption.setText(objectName);
     }
 
     private void showProjectTypeControls(boolean visible) {

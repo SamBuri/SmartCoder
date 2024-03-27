@@ -240,5 +240,28 @@
     "searchTreeFile": "",
     "menuUIFile": "",
     "sQLFile": ""
+  },
+    {
+    "projectType": "Vue",
+    "projectName": "Digital Sticker",
+    "basePackage": "com.saburi.digitalsticker",
+    "baseFolder": "/home/sam/Projects/ServiceCops/thirdpartypaymentsapp/stickerpoc/src",
+    "testFolder": "/home/sam/Projects/Personal/SmartCoder",
+    "commonProjectName": "Digital Sticker",
+    "entityPackage": "",
+    "dBAccessPackage": "",
+    "contollerPackage": "",
+    "utilPackage": "",
+    "enumClass": "",
+    "objectNameClass": "",
+    "navigationClass": "",
+    "entityFolder": "",
+    "dBAcessFolder": "",
+    "controllerFolder": "",
+    "resourceFolder": "",
+    "menuControllerFile": "",
+    "searchTreeFile": "",
+    "menuUIFile": "",
+    "sQLFile": ""
   }
 ]
