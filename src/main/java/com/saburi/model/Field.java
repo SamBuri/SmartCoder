@@ -26,7 +26,7 @@ public class Field {
     private String subFields = "";
     private String projectName = "";
     private boolean expose = false;
-    private String moduleName ="";
+    private String moduleName = "";
     private boolean select = false;
 
     private String variableName;
@@ -225,8 +225,7 @@ public class Field {
         this.displayVariableName = Utilities.getVariableName(display);
 
     }
-    
-    
+
     public Field(String fieldName, String caption, String dataType, String references, String subFields,
             String mapping, String key, String saburiKey, int size, boolean emumerated, boolean nullable, String projectName,
             boolean expose) {
@@ -242,7 +241,7 @@ public class Field {
         this.enumerated = emumerated;
         this.nullable = nullable;
         this.projectName = projectName;
-        this.expose=expose;
+        this.expose = expose;
         this.variableName = Utilities.getVariableName(fieldName);
         this.referencesID = this.fieldName.concat("ID");
         this.display = this.fieldName.concat("Display");
@@ -250,8 +249,8 @@ public class Field {
         this.displayVariableName = Utilities.getVariableName(display);
 
     }
-    
-     public Field(String fieldName, String caption, String dataType, String references, String subFields,
+
+    public Field(String fieldName, String caption, String dataType, String references, String subFields,
             String mapping, String key, String saburiKey, int size, boolean emumerated, boolean nullable, String projectName,
             boolean expose, String moduleName) {
         this.fieldName = fieldName;
@@ -266,7 +265,7 @@ public class Field {
         this.enumerated = emumerated;
         this.nullable = nullable;
         this.projectName = projectName;
-        this.expose=expose;
+        this.expose = expose;
         this.moduleName = moduleName;
         this.variableName = Utilities.getVariableName(fieldName);
         this.referencesID = this.fieldName.concat("ID");
@@ -275,10 +274,10 @@ public class Field {
         this.displayVariableName = Utilities.getVariableName(display);
 
     }
-     
-     public Field(String fieldName, String caption, String dataType, String references, String subFields,
-            String mapping, String key, String saburiKey, int size, boolean emumerated, boolean nullable, String projectName,
-            boolean expose, String moduleName, boolean select) {
+
+    public Field(String fieldName, String caption, String dataType, String references, String subFields,
+            String mapping, String key, String saburiKey, int size, boolean emumerated, boolean nullable,
+            String projectName, boolean expose, String moduleName, boolean select) {
         this.fieldName = fieldName;
         this.caption = caption;
         this.dataType = dataType;
@@ -291,7 +290,7 @@ public class Field {
         this.enumerated = emumerated;
         this.nullable = nullable;
         this.projectName = projectName;
-        this.expose=expose;
+        this.expose = expose;
         this.moduleName = moduleName;
         this.select = select;
         this.variableName = Utilities.getVariableName(fieldName);
@@ -421,9 +420,7 @@ public class Field {
     public void setSelect(boolean select) {
         this.select = select;
     }
-    
-    
-    
+
     public String getVariableName() {
         return variableName;
     }

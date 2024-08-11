@@ -383,15 +383,22 @@ public class Utilities {
 
     public static String toPlural(String string) {
 
-        List<String> plurals = List.of("info", "information", "s");
-        if (plurals.stream().filter(s -> string.toLowerCase().endsWith(s)).count() > 0) {
-            return string;
-        } else if (string.endsWith("y")) {
-            int lastIndex = string.length() - 1;
-            return string.substring(0, lastIndex).concat("ies");
-        } else {
-            return string.concat("s");
-        }
+//        List<String> plurals = List.of("info", "information", "s");
+//        if (plurals.stream().filter(s -> string.toLowerCase().endsWith(s)).count() > 0) {
+//            return string;
+//        } else if (string.endsWith("y")) {
+//            int lastIndex = string.length() - 1;
+//            return string.substring(0, lastIndex).concat("ies");
+//        } else {
+//            return string.concat("s");
+//        }
+        return Pluralizer.pluralize(string);
+
+    }
+
+    public static String toSingular(String string) {
+
+        return Pluralizer.singularize(string);
 
     }
 
@@ -460,6 +467,24 @@ public class Utilities {
                 .distinct()
                 .reduce(v, String::concat);
         return v;
+    }
+
+    public static String getCaption(String string) {
+        if (isNullOrEmpty(string)) {
+            return "";
+        }
+        StringBuilder builder = new StringBuilder();
+        builder.append(Character.toUpperCase(string.charAt(0)));
+
+        for (char c : string.substring(1, string.length()).toCharArray()) {
+            if (Character.isLowerCase(c)) {
+                builder.append(c);
+            } else {
+                builder.append(" ").append(c);
+            }
+
+        }
+        return builder.toString();
     }
 
 }

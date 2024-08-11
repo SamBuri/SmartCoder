@@ -45,7 +45,7 @@ public class Enums {
     };
 
     public enum ProjectTypes {
-        Springboot_API, Vue, Desktop
+        Springboot_API, Vue, Vue3, Desktop
     };
 
     public enum WebFiles {
@@ -54,6 +54,10 @@ public class Enums {
     
     public enum VueFiles {
         All, Model, View, Store, Nav,Search
+    };
+    
+     public enum Vue3Files {
+        All, Model,Controller, View, Store, Nav,Search
     };
 
     public enum DesktopFiles {

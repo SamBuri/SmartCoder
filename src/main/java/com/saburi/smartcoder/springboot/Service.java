@@ -6,16 +6,13 @@
 package com.saburi.smartcoder.springboot;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
 import com.saburi.smartcoder.CodeGenerator;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.JavaClass;
 import com.saburi.utils.Enums;
-import com.saburi.utils.Enums.EntityTypes;
 import com.saburi.utils.Enums.ServiceTypes;
-import com.saburi.utils.Enums.WebFiles;
 import com.saburi.utils.Utilities;
-import static com.saburi.utils.Utilities.isNullOrEmpty;
 import static com.saburi.utils.Utilities.makeMethod;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -24,52 +21,14 @@ import java.util.stream.Collectors;
  *
  * @author Hp
  */
-public class Service {
+public class Service extends SpringbootUtils{
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private String primaryKeyVariableName;
-    private final FieldDAO primaryKeyFied;
-    private final String objectCaption;
-    private final String objectVariableName;
-    private final FieldDAO idGenerator;
-    private final boolean hasGenerator;
-    private final String requestObject;
-    private final String objectRepo;
-    private final String objectRepoVariableName;
-    private final ProjectDAO oProjectDAO = new ProjectDAO();
-    private String idDataType;
-    private EntityTypes entityType;
-    private Project project;
-
-    public Service(String objectName, String objectCaption, Project project, List<FieldDAO> fields,
-            EntityTypes entityType) {
-        this.objectName = objectName;
-        this.objectCaption = objectCaption;
-        this.project = project;
-        this.objectVariableName = Utilities.getVariableName(objectName);
-        this.fields = fields.stream()
-                .filter(p -> !(p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Query_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Read_Only.name())))
-                .collect(Collectors.toList());
-
-        primaryKeyFied = Utilities.getPrimaryKey(fields);
-        if (primaryKeyFied != null) {
-            this.primaryKeyVariableName = primaryKeyFied.getVariableName();
-        }
-
-        this.idGenerator = Utilities.getIDGenerator(fields);
-        this.hasGenerator = idGenerator != null;
-        requestObject = objectName.concat(WebFiles.Request.name());
-        this.objectRepo = objectName.concat(WebFiles.Repo.name());
-        this.objectRepoVariableName = Utilities.getVariableName(objectRepo);
-        this.entityType = entityType;
-        this.idDataType = primaryKeyFied == null ? Utilities.getIdWrapperDataType(entityType) : primaryKeyFied.getDataType();
+    public Service(FileModel fileModel) {
+        super(fileModel);    
     }
 
-    public String makeImports(Project project, Enums.ServiceTypes serviceTypes) throws Exception {
-        Project commonProject = oProjectDAO.get(project.getCommonProjectName());
+    public String makeImports(Project project, Enums.ServiceTypes serviceTypes)  {
+        
         String imp = "import " + commonProject.getBasePackage() + ".repositories.PagingAndSortingRepo;\n";
         imp += "import " + project.getBasePackage() + "." + objectName.concat(".dtos").toLowerCase() + "." + requestObject + ";\n"
                 + "import org.springframework.beans.factory.annotation.Autowired;"
@@ -139,7 +98,7 @@ public class Service {
         String resourceID = serviceTypes.equals(ServiceTypes.ID_Gen) ? "private static final int RESOURCE_ID = 1;\n" : "";
 
         String properties = resourceID
-                + "    private static final String ENTITY_CAPTION = \"" + this.objectCaption + "\";\n"
+                + "    private static final String ENTITY_CAPTION = \"" + this.fileModel.getObjectCaption() + "\";\n"
                 + "    @Autowired\n"
                 + "    private " + objectName + "Repo " + objectVariableName + "Repo;\n";
 
@@ -219,7 +178,7 @@ public class Service {
                 }
             }
             message += "\" already exists\"";
-            uniqueGroupValidate += "if (" + objectRepoVariableName + "." + methodName + "(" + methodParams + ")\n"
+            uniqueGroupValidate += "if (" + repoVariableName + "." + methodName + "(" + methodParams + ")\n"
                     + "                .stream().filter(" + firstChar + " -> !Objects.equals(" + firstChar + ".getId(), " + objectVariableName + ".getId())).count() > 0) {\n"
                     + "            throw new KnownException(" + message + ");\n"
                     + "        }";
@@ -230,7 +189,7 @@ public class Service {
         String uniqueValidate = "";
 
         for (FieldDAO fieldDAO : unique) {
-            uniqueValidate += "if (" + objectRepoVariableName + ".findBy" + fieldDAO.getFieldName() + "(" + objectVariableName + "." + fieldDAO.getCall() + ")\n"
+            uniqueValidate += "if (" + repoVariableName + ".findBy" + fieldDAO.getFieldName() + "(" + objectVariableName + "." + fieldDAO.getCall() + ")\n"
                     + "                .stream().filter(" + firstChar + " -> !Objects.equals(" + firstChar + ".getId(), " + objectVariableName + ".getId())).count() > 0) {\n"
                     + "            throw new KnownException(\"A record with name: \" + " + objectVariableName + "." + fieldDAO.getCall() + "+ \" already exists\");\n"
                     + "        }";
@@ -299,10 +258,7 @@ public class Service {
         return body;
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String projectName = fieldDAO.getProjectName();
-        return this.project.getProjectType().equals(Enums.ProjectTypes.Springboot_API) ? projectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(projectName) : true;
-    }
+    
 
     private String createExpose(FieldDAO fieldDAO) {
         boolean referencesIn = fieldDAO.referencesIN(project);
@@ -315,7 +271,7 @@ public class Service {
                 .concat(fieldDAO.getFieldName()).concat(id).concat("(")
                 .concat(param)
                 .concat("){\n")
-                .concat("return " + objectRepoVariableName + ".findBy" + fieldDAO.getFieldName().concat(id) + "(" + (referencesIn ? "id" : fieldDAO.getVariableName()) + ");")
+                .concat("return " + repoVariableName + ".findBy" + fieldDAO.getFieldName().concat(id) + "(" + (referencesIn ? "id" : fieldDAO.getVariableName()) + ");")
                 .concat("}\n");
     }
 
@@ -327,7 +283,8 @@ public class Service {
         String mtds = makeMethod("@Override\npublic", "String", "getEntityCaption", "", "return ENTITY_CAPTION;");
         mtds += makeMethod("@Override\npublic", "PagingAndSortingRepo<" + this.objectName + ", " + idDataType + ">", "getRepository", "", "return " + objectVariableName.concat("Repo") + ";");
 
-        mtds += makeMethod("@Override\npublic", "List<? extends ResponseData>", "getMiniData", "", "return " + objectRepoVariableName + ".findAllBy();");
+        mtds += makeMethod("@Override\npublic", "List<? extends ResponseData>", 
+                "getMiniData", "", "return " + repoVariableName + ".findAllBy();");
         if (serviceTypes.equals(ServiceTypes.ID_Gen)) {
             mtds += makeMethod("@Override\npublic", "int", "getResourceID", "", "return RESOURCE_ID;");
             String cast = "";
@@ -342,7 +299,7 @@ public class Service {
             mtds += """
                     @Override
                         protected int getNextIdHelper(Object object) {
-                            return """.concat(" ") + (objectRepoVariableName) + ".getMaxIdHelper(" + cast + ").orElse(0) + 1;\n"
+                            return """.concat(" ") + (repoVariableName) + ".getMaxIdHelper(" + cast + ").orElse(0) + 1;\n"
                     + "    }\n";
 
             mtds += " @Override\n"
@@ -387,7 +344,7 @@ public class Service {
 
     }
 
-    public String makeClass(Project project, Enums.ServiceTypes serviceTypes) throws Exception {
+    public String makeClass(Project project, Enums.ServiceTypes serviceTypes) throws Exception  {
         CodeGenerator.validate(fields, project);
         String className = objectName + "" + Enums.WebFiles.Service.name();
 
@@ -396,6 +353,27 @@ public class Service {
         String packageName = project.getBasePackage() + "." + objectName.toLowerCase();
         JavaClass javaClass = new JavaClass(packageName, className, this.makeImports(project, serviceTypes), this.makeClassFields(serviceTypes) + methods);
         return javaClass.makeClass(Utilities.getParentService(serviceTypes) + "<" + objectName + "," + requestObject + ", " + idDataType + ">", "@Service");
+    }
+
+    @Override
+    protected boolean isValid() throws Exception {
+        CodeGenerator.validate(fields, project);
+        if(Utilities.isNullOrEmpty(entityType.name())) throw  new Exception("Entity Type is required!");
+        if(Utilities.isNullOrEmpty(fileModel.getServiceType().name())) throw  new Exception("Service Type is required!");
+        return super.isValid(); 
+    }
+    
+    
+
+    @Override
+    protected String getFileName() {
+        return this.service;
+    }
+
+
+    @Override
+    protected String create() throws Exception{
+       return this.makeClass(this.project, this.fileModel.getServiceType());
     }
 
 }

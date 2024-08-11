@@ -22,6 +22,8 @@ import com.saburi.smartcoder.javafx.Controller;
 import com.saburi.smartcoder.springboot.ControllerTest;
 import com.saburi.smartcoder.javafx.DBAcess;
 import com.saburi.smartcoder.Entity;
+import com.saburi.smartcoder.FileModel;
+import com.saburi.smartcoder.ProjectFile;
 import com.saburi.smartcoder.javafx.GenMenu;
 import com.saburi.smartcoder.javafx.GenViewController;
 import com.saburi.smartcoder.springboot.Mini;
@@ -38,6 +40,7 @@ import com.saburi.smartcoder.vuejs.Vue;
 import com.saburi.smartcoder.vuejs.VueModel;
 import com.saburi.smartcoder.vuejs.VueNav;
 import com.saburi.smartcoder.springboot.WebController;
+import com.saburi.smartcoder.vue3.Vue3;
 import com.saburi.smartcoder.vuejs.Search;
 import com.saburi.utils.EditCell;
 import com.saburi.utils.Enums;
@@ -48,7 +51,9 @@ import com.saburi.utils.Enums.RelationMappping;
 import com.saburi.utils.Enums.Saburikeys;
 import com.saburi.utils.Enums.keys;
 import com.saburi.utils.Enums.ProjectTypes;
+import static com.saburi.utils.Enums.ProjectTypes.Vue;
 import com.saburi.utils.Enums.ServiceTypes;
+import com.saburi.utils.Enums.Vue3Files;
 import com.saburi.utils.Enums.VueFiles;
 import com.saburi.utils.Enums.WebFiles;
 import static com.saburi.utils.FXUIUtils.loadProjects;
@@ -86,6 +91,7 @@ import javafx.stage.Stage;
 import javafx.util.Callback;
 import java.awt.Desktop;
 import java.util.ArrayList;
+import java.util.Map;
 
 /**
  *
@@ -157,6 +163,7 @@ public class SmartCoderController implements Initializable {
     private final ProjectDAO oProjectDAO = new ProjectDAO();
     private List<Project> projects = new ArrayList<>();
     private List<String> projectNames;
+    private Vue3 vue3= new Vue3();
 
     @Override
     public void initialize(URL url, ResourceBundle rb) {
@@ -179,7 +186,7 @@ public class SmartCoderController implements Initializable {
                 String fileName = file.getName();
                 String objectName = fileName.substring(0, fileName.length() - 4);
                 txtObjectName.setText(objectName);
-                txtObjectCaption.setText(objectName);
+                txtObjectCaption.setText(Utilities.getCaption(objectName));
                 btnSave.visibleProperty().bind(Bindings.size(tblSaburiTools.getItems()).greaterThan(0));
 
             });
@@ -239,6 +246,9 @@ public class SmartCoderController implements Initializable {
 
                     case Vue ->
                         cboFiles.setItems(FXCollections.observableArrayList(VueFiles.values()));
+                        case Vue3 ->
+                        cboFiles.setItems(FXCollections.observableArrayList(Vue3Files.values()));
+
 
                     case Desktop -> {
                         cboFiles.setItems(FXCollections.observableArrayList(DesktopFiles.values()));
@@ -248,10 +258,12 @@ public class SmartCoderController implements Initializable {
                     default ->
                         cboFiles.getItems().clear();
                 }
+                
+                ProjectTypes ptype = cboProjectType.getValue();
 
-                showProjectTypeControls(cboProjectType.getValue().equals(ProjectTypes.Springboot_API));
-                txtModule.setVisible(cboProjectType.getValue().equals(ProjectTypes.Vue));
-                hideTableColumns(cboProjectType.getValue().equals(ProjectTypes.Vue));
+                showProjectTypeControls(ptype.equals(ProjectTypes.Springboot_API));
+                txtModule.setVisible(ptype.equals(ProjectTypes.Vue)||ptype.equals(ProjectTypes.Vue3));
+                hideTableColumns(ptype.equals(ProjectTypes.Vue)||ptype.equals(ProjectTypes.Vue3));
 
                 try {
                     projects = oProjectDAO.read().stream()
@@ -597,12 +609,14 @@ public class SmartCoderController implements Initializable {
             return ".txt";
         }
 
-        if (selectedFile.equalsIgnoreCase(VueFiles.Model.name()) || selectedFile.equalsIgnoreCase(VueFiles.Store.name())
-                || selectedFile.equalsIgnoreCase(VueFiles.Nav.name())) {
+        if (selectedFile.equalsIgnoreCase(VueFiles.Model.name()) 
+                || selectedFile.equalsIgnoreCase(VueFiles.Store.name())
+                || selectedFile.equalsIgnoreCase(VueFiles.Nav.name())
+                || selectedFile.equalsIgnoreCase(Vue3Files.Controller.name())) {
             return ".js";
         }
         if (selectedFile.equalsIgnoreCase(VueFiles.View.name())
-                ||selectedFile.equalsIgnoreCase(VueFiles.Search.name())) {
+                || selectedFile.equalsIgnoreCase(VueFiles.Search.name())) {
             return ".vue";
         }
 
@@ -615,16 +629,30 @@ public class SmartCoderController implements Initializable {
     private String getFileFullName(String objectName, Project project, String selectedFile) {
         String fileName = (selectedFile.equalsIgnoreCase(DesktopFiles.Entity.name())
                 || selectedFile.equalsIgnoreCase(VueFiles.View.name()))
-                || selectedFile.equalsIgnoreCase(VueFiles.Store.name())
                 || selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name()) ? objectName
-                :selectedFile.equalsIgnoreCase(VueFiles.Search.name()) ? Utilities.toPlural(objectName)
+                : selectedFile.equalsIgnoreCase(VueFiles.Store.name())
+                && project.getProjectType().equals(ProjectTypes.Vue)
+                ? objectName.toLowerCase()
+                
+                 : selectedFile.equalsIgnoreCase(Vue3Files.Store.name())
+                && project.getProjectType().equals(ProjectTypes.Vue3)
+                ? objectName.concat(Vue3Files.Store.name())
+                : selectedFile.equalsIgnoreCase(VueFiles.Search.name()) ? Utilities.toPlural(objectName)
                 : selectedFile.equalsIgnoreCase(DesktopFiles.DBAcess.name()) ? objectName.concat("DA")
                 : selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name()) ? objectName.concat("View")
                 : selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name()) ? "create_" + Utilities.toPlural(objectName).toLowerCase()
+                 : selectedFile.equalsIgnoreCase(Vue3Files.Controller.name()) ? objectName.concat("Controller")
+                
                 : objectName.concat(selectedFile.replace("-", ""));
-
-        fileName = (selectedFile.equalsIgnoreCase(VueFiles.Store.name()) ? fileName.toLowerCase() : fileName);
-        String baseFolder = getBaseFolder(selectedFile, objectName, project);
+//
+//        fileName = (selectedFile.equalsIgnoreCase(VueFiles.Store.name())
+//                && project.getProjectType().equals(ProjectTypes.Vue)
+//                ? fileName.toLowerCase() : fileName);
+//        
+//        fileName = (selectedFile.equalsIgnoreCase(VueFiles.Store.name())
+//                && project.getProjectType().equals(ProjectTypes.Vue3)
+//                ? fileName.concat("Store") : fileName);
+        String baseFolder = getBaseFolder(selectedFile, objectName.toLowerCase(), project);
         return baseFolder + "//" + fileName.concat(this.getFileExtension(selectedFile));
     }
 
@@ -638,14 +666,22 @@ public class SmartCoderController implements Initializable {
             }
             case Vue -> {
                 String module = txtModule.getText();
-                String lastSection = Utilities.isNullOrEmpty(module) ? "//".concat(objectName) : "//".concat(module).concat("//").concat(objectName);
+                String lastSection = Utilities.isNullOrEmpty(module) ? "//".concat(objectName.toLowerCase()) : "//".concat(module).concat("//").concat(objectName);
+                outputFolder = saveProject ? project.getBaseFolder().concat(lastSection) : outPutDirector;
+
+//                outputFolder = outPutDir.concat("//" + (selectedFile.equalsIgnoreCase(VueFiles.Store.name()) ? objectName.toLowerCase() : selectedFile.replace("-", "")));
+            }
+            case Vue3 -> {
+                String module = txtModule.getText();
+                String lastSection = Utilities.isNullOrEmpty(module) ? "//".concat(objectName.toLowerCase())
+                        : "//".concat(module).concat("//").concat(objectName);
                 outputFolder = saveProject ? project.getBaseFolder().concat(lastSection) : outPutDirector;
 
 //                outputFolder = outPutDir.concat("//" + (selectedFile.equalsIgnoreCase(VueFiles.Store.name()) ? objectName.toLowerCase() : selectedFile.replace("-", "")));
             }
             default -> {
                 String outPutDir = saveProject ? project.getBaseFolder() : outPutDirector;
-                outputFolder = outPutDir.concat("//" + objectName);
+                outputFolder = outPutDir.concat("//" + objectName.toLowerCase());
                 if (selectedFile.equalsIgnoreCase(WebFiles.Request.name())
                         || selectedFile.equalsIgnoreCase(WebFiles.Mini.name()) //                        || selectedFile.equalsIgnoreCase(WebFiles.Response.name())
                         ) {
@@ -658,7 +694,7 @@ public class SmartCoderController implements Initializable {
                 }
             }
         }
-       
+
         makeDirectory(outputFolder);
         return outputFolder;
     }
@@ -680,59 +716,60 @@ public class SmartCoderController implements Initializable {
 
     }
 
-    private String getFileContents(String selectedFile, String objectName, String objectCaption, String moduleName,
-            Project project, List<FieldDAO> fieldDAOs, EntityTypes entiityType, ServiceTypes serviceTypes) throws Exception {
-
-        if (selectedFile.equalsIgnoreCase(DesktopFiles.Entity.name())) {
-            return new Entity(objectName, project, fieldDAOs).makeClass(project, entiityType);
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.DBAcess.name())) {
-            return new DBAcess(objectName, fieldDAOs).makeClass(project);
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Controller.name()) && project.getProjectType().equals(ProjectTypes.Desktop)) {
-            return new Controller(objectName, fieldDAOs).makeClass(project);
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name())) {
-            return new UIEdit(objectName, fieldDAOs).create(project);
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name())) {
-            return new UIView(objectName, fieldDAOs).create(project);
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.ViewController.name())) {
-            return new GenViewController(objectName).makeClass();
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Menu.name())) {
-            return GenMenu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
-        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.SQL.name())) {
-            return SQLFile.callEditAccessObject(objectName, objectCaption);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.Request.name())) {
-            return new Request(objectName, project, fieldDAOs).makeClass(project);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.Repo.name())) {
-            return new Repository(objectName, project, fieldDAOs).makeClass(project, entiityType);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.Service.name())) {
-            return new Service(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.Controller.name()) && project.getProjectType().equals(ProjectTypes.Springboot_API)) {
-            return new WebController(objectName, project, fieldDAOs, serviceTypes).makeClass(project, entiityType);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.ServiceTest.name())) {
-            return new ServiceTest(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.ControllerTest.name())) {
-            return new ControllerTest(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.Mini.name())) {
-            return new Mini(objectName, project, fieldDAOs, entiityType).makeClass();
-        } else if (selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name())) {
-            return new ChangeLog(objectName, project, fieldDAOs, entiityType).makeDocument();
-        } //          else if (selectedFile.equalsIgnoreCase(WebFiles.Response.name())) {
-        //            return new Response(objectName, project, fieldDAOs).create();}
-        else if (selectedFile.equalsIgnoreCase(VueFiles.Model.name())) {
-            return new VueModel(objectName, project, fieldDAOs).create();
-        } else if (selectedFile.equalsIgnoreCase(VueFiles.View.name())) {
-            return new Vue(objectName, moduleName, objectCaption, fieldDAOs).create();
-        } else if (selectedFile.equalsIgnoreCase(VueFiles.Store.name())) {
-            return new Store(objectName).create();
-        } else if (selectedFile.equalsIgnoreCase(VueFiles.Nav.name())) {
-            return new VueNav(objectName, objectCaption, moduleName, fieldDAOs).create();
-        }
-        
-        else if (selectedFile.equalsIgnoreCase(VueFiles.Search.name())) {
-            return new Search(objectName).create();
-        }
-
-        throw new Exception("Un recorginsed file type: " + selectedFile);
-    }
+//    private String getFileContents(String selectedFile, String objectName, String objectCaption, String moduleName,
+//            Project project, List<FieldDAO> fieldDAOs, EntityTypes entiityType, ServiceTypes serviceTypes) throws Exception {
+//
+//        if(project.getProjectType().equals(ProjectTypes.Vue3)) return vue3.getFileContents(selectedFile, objectName, objectCaption, moduleName, project, fieldDAOs);
+//        if (selectedFile.equalsIgnoreCase(DesktopFiles.Entity.name())) {
+//            return new Entity(objectName, project, fieldDAOs).makeClass(project, entiityType);
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.DBAcess.name())) {
+//            return new DBAcess(objectName, fieldDAOs).makeClass(project);
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Controller.name()) && project.getProjectType().equals(ProjectTypes.Desktop)) {
+//            return new Controller(objectName, fieldDAOs).makeClass(project);
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML.name())) {
+//            return new UIEdit(objectName, fieldDAOs).create(project);
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.FXML_View.name())) {
+//            return new UIView(objectName, fieldDAOs).create(project);
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.ViewController.name())) {
+//            return new GenViewController(objectName).makeClass();
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.Menu.name())) {
+//            return GenMenu.makeMenu(objectName, objectCaption, cboMenuType.getValue(), txtParentMenuID.getText());
+//        } else if (selectedFile.equalsIgnoreCase(DesktopFiles.SQL.name())) {
+//            return SQLFile.callEditAccessObject(objectName, objectCaption);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.Request.name())) {
+//            return new Request(objectName, project, fieldDAOs).makeClass(project);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.Repo.name())) {
+//            return new Repository(objectName, project, fieldDAOs).makeClass(project, entiityType);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.Service.name())) {
+//            return new Service(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.Controller.name()) && project.getProjectType().equals(ProjectTypes.Springboot_API)) {
+//            return new WebController(objectName, project, fieldDAOs, serviceTypes).makeClass(project, entiityType);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.ServiceTest.name())) {
+//            return new ServiceTest(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.ControllerTest.name())) {
+//            return new ControllerTest(objectName, objectCaption, project, fieldDAOs, entiityType).makeClass(project, serviceTypes);
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.Mini.name())) {
+//            return new Mini(objectName, project, fieldDAOs, entiityType).makeClass();
+//        } else if (selectedFile.equalsIgnoreCase(WebFiles.Change_Log.name())) {
+//            return new ChangeLog(objectName, project, fieldDAOs, entiityType).makeDocument();
+//        } //          else if (selectedFile.equalsIgnoreCase(WebFiles.Response.name())) {
+//        //            return new Response(objectName, project, fieldDAOs).create();}
+//        else if (selectedFile.equalsIgnoreCase(VueFiles.Model.name())) {
+//            return new VueModel(objectName, project, fieldDAOs).create();
+//        } else if (selectedFile.equalsIgnoreCase(VueFiles.View.name())) {
+//            return new Vue(objectName, moduleName, objectCaption, fieldDAOs).create();
+//        } else if (selectedFile.equalsIgnoreCase(VueFiles.Store.name())) {
+//            return new Store(objectName).create();
+//        } else if (selectedFile.equalsIgnoreCase(VueFiles.Nav.name())) {
+//            return new VueNav(objectName, objectCaption, moduleName, fieldDAOs).create();
+//        } else if (selectedFile.equalsIgnoreCase(VueFiles.Search.name())) {
+//            return new Search(objectName).create();
+//        }
+//
+//        throw new Exception("Un recorginsed file type: " + selectedFile);
+//    }
+//    
+//  
 
     private Predicate filterFileName(String selectedFile) {
         return (p) -> selectedFile.equalsIgnoreCase(DesktopFiles.All.name()) ? !p.toString().equalsIgnoreCase(selectedFile) : p.toString().equalsIgnoreCase(selectedFile);
@@ -753,7 +790,7 @@ public class SmartCoderController implements Initializable {
         try {
             String objectName = txtObjectName.getText();
             String objectCaption = txtObjectCaption.getText();
-            String outPutDirecory = txtOutputDirectory.getText();
+            String outPutDirectory = txtOutputDirectory.getText();
             Project project = cboProject.getValue();
             Object selectedFileo = cboFiles.getValue();
             ProjectTypes projectType = cboProjectType.getValue();
@@ -769,7 +806,7 @@ public class SmartCoderController implements Initializable {
                 return;
             }
 
-            if (outPutDirecory.isBlank()) {
+            if (outPutDirectory.isBlank()) {
                 message("Must enter Out Put Direcory!");
                 return;
             }
@@ -808,33 +845,42 @@ public class SmartCoderController implements Initializable {
                     .filter(filterFileName(selectedFile))
                     .filter(this.filterViewUI(chkGenerateViewUI.isSelected(), selectedFile))
                     .toList();
-
+            
+            FileModel fileModel = new FileModel(objectName, fieldDAOs, project, projectType, moduleName, objectCaption, 
+                    outPutDirectory, chkOpenFile.isSelected(), chkSaveToProject.isSelected(), 
+                    entityTypes, serviceTypes);
+              Map<String, ProjectFile> map  = ProjectTypeRegistry.register(fileModel);
+//             Map<String, ProjectFile> map=  projectFilesMap.get(projectType);
+             if(map==null) throw new Exception("Project Type not registered in the registry");
             for (Object item : items) {
+                
+              ProjectFile pj = map.get(item.toString());
+              if(pj!=null) pj.generate();
 
-                String fileName = getFileFullName(objectName, project, item.toString());
-                String fileContentent = getFileContents(item.toString(), objectName, objectCaption, moduleName, project, fieldDAOs, entityTypes, serviceTypes);
-                File file = new File(fileName);
-                if (file.exists()) {
-                    if (!warningOK("File Exists", "The file with name " + file.getName() + " already exists.\n"
-                            + "Do you want to replace it?")) {
-                        message("Operation Cancelled!");
-                        return;
-                    } else {
-
-                        if (!warningOK("Confirm Replace", """
-                                                             Replacing this file may lead to potential loss of the code
-                                                             Are you sure you want to continue?""")) {
-                            message("Operation Cancelled!");
-                            return;
-                        }
-
-                    }
-                }
-                writeFile(fileName, fileContentent);
-                if (chkOpenFile.isSelected()) {
-                    Desktop.getDesktop().open(file);
-
-                }
+//                String fileName = getFileFullName(objectName, project, item.toString());
+//                String fileContentent = getFileContents(item.toString(), objectName, objectCaption, moduleName, project, fieldDAOs, entityTypes, serviceTypes);
+//                File file = new File(fileName);
+//                if (file.exists()) {
+//                    if (!warningOK("File Exists", "The file with name " + file.getName() + " already exists.\n"
+//                            + "Do you want to replace it?")) {
+//                        message("Operation Cancelled!");
+//                        return;
+//                    } else {
+//
+//                        if (!warningOK("Confirm Replace", """
+//                                                             Replacing this file may lead to potential loss of the code
+//                                                             Are you sure you want to continue?""")) {
+//                            message("Operation Cancelled!");
+//                            return;
+//                        }
+//
+//                    }
+//                }
+//                writeFile(fileName, fileContentent);
+//                if (chkOpenFile.isSelected()) {
+//                    Desktop.getDesktop().open(file);
+//
+//                }
 
             }
 
