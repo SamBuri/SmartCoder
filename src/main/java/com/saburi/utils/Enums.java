@@ -21,7 +21,7 @@ public class Enums {
 
     public static enum UIControls {
         Label, TextField, ComboBox, DatePicker, CheckBox, TextArea, 
-        MultiSelectCombo, ImageView, TableView, FileBrowser, SNumberInput, SelectField
+        MultiSelectCombo, ImageView, TableView, FileBrowser, SNumberInput, SelectField, MultiSelectField
     }
 
     public static enum RelationMappping {

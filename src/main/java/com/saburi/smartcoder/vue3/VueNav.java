@@ -44,7 +44,7 @@ public class VueNav extends Vue3Utils{
     }
 
     private String headerValue(FieldDAO fieldDAO) {
-        return fieldDAO.isReferance() && !fieldDAO.getEnumerated() ? fieldDAO.getVariableName() : fieldDAO.getVariableName();
+        return  getFieldPath(fieldDAO);
     }
 
     private String header(FieldDAO fieldDAO) {
@@ -74,7 +74,10 @@ public class VueNav extends Vue3Utils{
                 + "                key: \"id\",\n"
                 + "            },\n";
 
-        headers = fields.stream().map(fieldDAO -> this.header(fieldDAO)).reduce(headers, String::concat);
+        headers = fields.stream()
+                .filter(f->!f.isCollection())
+                .map(fieldDAO -> this.header(fieldDAO))
+                .reduce(headers, String::concat);
         headers = headers.concat(this.constantHeaders());
         headers = "headers: [" + headers + "],\n";
 
@@ -93,7 +96,9 @@ public class VueNav extends Vue3Utils{
     private String editHeaders() {
         String headers = "";
 
-        headers = fields.stream().map(fieldDAO -> this.header(fieldDAO)).reduce(headers, String::concat);
+        headers = fields.stream().filter(f->!f.isCollection())
+                .map(fieldDAO -> this.header(fieldDAO))
+                .reduce(headers, String::concat);
         headers+="{title: \"Actions\", key: \"actions\"}";
         headers = "editHeaders: [" + headers + "],";
 

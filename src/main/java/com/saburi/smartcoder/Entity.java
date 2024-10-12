@@ -29,6 +29,7 @@ public class Entity extends SpringbootUtils {
 
     public Entity(FileModel fileModel) {
         super(fileModel);
+         this.fields =this.fields.stream().filter(f->!f.getFieldName().equalsIgnoreCase("Id")).collect(Collectors.toList());
         
     }
 

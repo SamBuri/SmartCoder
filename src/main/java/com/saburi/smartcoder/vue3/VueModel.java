@@ -32,18 +32,15 @@ public class VueModel extends Vue3Utils{
 //    }
     
     private String makeLine(FieldDAO fieldDAO, String separater, String begin, String endLiteral) {
+        String variableName = getVariableName(fieldDAO);
         if (fieldDAO.getDataType().equalsIgnoreCase("boolean") || fieldDAO.getDataType().equalsIgnoreCase("bool")) {
-            return begin + fieldDAO.getVariableName().concat(separater).concat("false").concat(endLiteral);
+            return begin + variableName.concat(separater).concat("false").concat(endLiteral);
         } else if (fieldDAO.getDataType().equalsIgnoreCase("Image")||fieldDAO.isDate()) {
-            return begin + fieldDAO.getVariableName().concat(separater).concat("null").concat(endLiteral);
+            return begin + variableName.concat(separater).concat("null").concat(endLiteral);
         } else if (fieldDAO.isCollection()) {
             return begin + fieldDAO.getVariableName().concat(separater).concat("[]").concat(endLiteral);
-        } else if (this.forceReferences(fieldDAO) && !fieldDAO.getEnumerated()) {
-            return begin + fieldDAO.getVariableName().concat("Id").concat(separater).concat("\"\"").concat(endLiteral)
-                    .concat("\n")
-                    .concat(begin + fieldDAO.getVariableName().concat(separater).concat("null").concat(endLiteral));
-        }
-        return begin + fieldDAO.getVariableName().concat(separater).concat("\"\"").concat(endLiteral);
+        } 
+        return begin + variableName.concat(separater).concat("\"\"").concat(endLiteral);
     }
     
     private String makeInitialLines() {
@@ -75,14 +72,10 @@ public class VueModel extends Vue3Utils{
         return intials;
     }
     
-    private String getFieldPathId(FieldDAO f){
-      if(f.isReferance() && forceReferences(f)) return f.getVariableName().concat(".Id");
-      return f.getVariableName();
-    }
-    
+   
       private String makeCoyLine(FieldDAO fieldDAO){
          
-        return String.format("this.%s = obj.%s;", fieldDAO.getVariableName(), getFieldPathId(fieldDAO));
+        return String.format("this.%s = obj.%s;", getVariableName(fieldDAO), getFieldPath(fieldDAO));
     };
     
          private String getFieldPathDisplay(FieldDAO f){
@@ -127,6 +120,26 @@ public class VueModel extends Vue3Utils{
 
         return "printOptions(){" + mtdBody + "},\n";
     }
+     
+      public String makeFormDataLine(FieldDAO fieldDAO, String variable) {
+        return variable + ".append(\"" + getVariableName(fieldDAO)+ "\", this." + getVariableName(fieldDAO) + ");\n";
+
+    }
+
+    private String makeFormDataLines(String variable) {
+        String lines = "";
+        lines = this.fields.stream()
+                .filter(p -> !p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Query_Only.name()))
+                .map(f -> makeFormDataLine(f, variable)).reduce(lines, String::concat);
+        return lines;
+    }
+
+    public String getFormDataMtd() {
+        return this.hasMuiltipart ? "getFormData() {\n"
+                + "      var data = new FormData();\n" + makeFormDataLines("data") + "\n"
+                + "      return data;\n"
+                + "    }," : "";
+    }
     
 
     
@@ -137,6 +150,7 @@ public class VueModel extends Vue3Utils{
                         .concat("clear(){\n").concat(makeClearLines()).concat("},\n")
                         .concat(makeCopyMethod()).concat("\n")
                         .concat(printOptions()).concat("\n")
+                        .concat(getFormDataMtd()).concat("\n")
                         .concat("},\n")
                         .concat("path:").concat("\"" + toPlural(objectName).toLowerCase() + "\"")
                         .concat(",\n")
@@ -157,7 +171,7 @@ public class VueModel extends Vue3Utils{
         if (fieldDAO.getControlType().equals(Enums.UIControls.CheckBox)) {
             return "";
         }
-        String rules = fieldDAO.getVariableName() + ":[(v) => !!v || \"" + fieldDAO.getCaption() + " is required\",\n";
+        String rules = getVariableName(fieldDAO) + ":[(v) => !!v || \"" + fieldDAO.getCaption() + " is required\",\n";
         if (fieldDAO.getDataType().equalsIgnoreCase("String")) {
             rules += getLengthRule(fieldDAO);
         }

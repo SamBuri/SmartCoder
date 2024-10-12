@@ -21,7 +21,7 @@ import java.util.List;
  *
  * @author Hp
  */
-public class Request extends SpringbootUtils {
+public class Request extends DtoClass {
 
     public Request(FileModel fileModel) {
         super(fileModel);

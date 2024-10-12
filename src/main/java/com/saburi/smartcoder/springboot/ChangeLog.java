@@ -23,6 +23,7 @@ public class ChangeLog extends ResourceFile{
 
     public ChangeLog(FileModel fileModel) {
         super(fileModel);
+        this.fields =this.fields.stream().filter(f->!f.getFieldName().equalsIgnoreCase("Id")).collect(Collectors.toList());
     }
 
     
@@ -336,7 +337,7 @@ public class ChangeLog extends ResourceFile{
 
     @Override
     protected String getFolderName() {
-        return "".concat("changelogs").concat(FILE_SEPARATOR).concat(objectName).toLowerCase(); 
+        return "changelogs".concat(FILE_SEPARATOR).concat(objectName).toLowerCase(); 
     }
     
     

@@ -413,7 +413,7 @@ public class Utilities {
     public static String getFullParentEntity(EntityTypes entityType) {
         return entityType.equals(Enums.EntityTypes.Auto_ID_Int) ? "DBEntityIncID<Integer>"
                 : entityType.equals(Enums.EntityTypes.Auto_ID_Long) ? "DBEntityIncID<Long>"
-                : entityType.equals(Enums.EntityTypes.Auto_ID_Gen) ? "DBEntityGenID" : "DBEntity";
+                : entityType.equals(Enums.EntityTypes.Auto_ID_Gen) ? "DBEntityGenID" : "DBEntity<String>";
     }
 
     public static String getIdWrapperDataType(EntityTypes entityType) {

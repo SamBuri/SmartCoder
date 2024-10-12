@@ -10,8 +10,8 @@ import com.saburi.smartcoder.FileModel;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Enums.UIControls;
 import static com.saburi.utils.Enums.UIControls.SNumberInput;
+import static com.saburi.utils.Enums.UIControls.SelectField;
 import com.saburi.utils.Utilities;
-import java.util.stream.Collectors;
 
 /**
  *
@@ -21,28 +21,33 @@ public class Vue extends Vue3Utils {
 
     private final String modelName;
 
-    private final boolean hasMuiltipart;
+    
 
     public Vue(FileModel fileModel) {
         super(fileModel);
 
         this.modelName = objectVariableName.concat("Model");
-        this.hasMuiltipart = Utilities.hasMultipart(fields);
+       
     }
 
   
 
     private UIControls getUIControl(FieldDAO fieldDAO) {
-        System.out.println("Field Name: "+fieldDAO.getColumnName());
         UIControls uIControl = fieldDAO.getControlType();
-        if (uIControl.equals(UIControls.TextArea) && fieldDAO.isCollection()) {
+        if (uIControl.equals(UIControls.TextArea) && fieldDAO.isCollection()&!fieldDAO.isSelect()) {
             return UIControls.MultiSelectCombo;
-        } else if (uIControl.equals(UIControls.TextField) && fieldDAO.isNumeric()) {
+        }
+        
+        if (uIControl.equals(UIControls.TextArea) && fieldDAO.isCollection()&fieldDAO.isSelect()) {
+            return UIControls.MultiSelectField;
+        }
+        else if (uIControl.equals(UIControls.TextField) && fieldDAO.isNumeric()) {
             return UIControls.SNumberInput;
         } else if (uIControl.equals(UIControls.ComboBox) && fieldDAO.isSelect()) {
             System.out.println("Field Name: "+fieldDAO.getColumnName());
             return UIControls.SelectField;
         }
+        
         return uIControl;
     }
 
@@ -61,8 +66,7 @@ public class Vue extends Vue3Utils {
             case TableView ->
                 this.crudTable(fieldDAO);
             case DatePicker ->
-                " <s-date-picker" + this.noValidationProps(fieldDAO)
-                .concat(" :rules=\"" + fieldDAO.getVariableName() + "Rules\"\n") + "/>";
+                " <s-date-picker" + this.basicNoCounterProperties(fieldDAO)+ "/>";
             case ImageView ->
                 "<s-file-input\n" + fileInput(fieldDAO) + "></s-file-input>\n";
 
@@ -71,6 +75,9 @@ public class Vue extends Vue3Utils {
 
             case SelectField ->
                 "<s-select-field\n" + selectField(fieldDAO) + "></s-select-field>\n";
+                
+                 case MultiSelectField ->
+                "<s-multi-select-field\n" + selectField(fieldDAO) + "></s-multi-select-field>\n";
 
             default ->
                 "<s-text-field\n" + basicProperties(fieldDAO) + "></s-text-field>\n";
@@ -87,7 +94,7 @@ public class Vue extends Vue3Utils {
     }
 
     private String noValidationProps(FieldDAO fieldDAO) {
-        String variableName = fieldDAO.getDBColumnName(forceReferences(fieldDAO));
+        String variableName = this.getVariableName(fieldDAO);
         return " id=\"" + variableName + "\" label=\"" + fieldDAO.getCaption() + "\"\n"
                 + "          v-model=\"" + "model." + variableName + "\"\n";
 
@@ -97,15 +104,25 @@ public class Vue extends Vue3Utils {
 
         String properties = noValidationProps(fieldDAO)
                 .concat(disableControl(fieldDAO));
-        properties += " :rules=\"rules." + fieldDAO.getVariableName() + "\"\n";
+        properties += " :rules=\"rules." + this.getVariableName(fieldDAO) + "\"\n";
         properties += ":counter=\"" + fieldDAO.getSize() + "\"\n";
         return properties;
 
     }
+    
+    private String basicNoCounterProperties(FieldDAO fieldDAO) {
+
+        String properties = noValidationProps(fieldDAO)
+                .concat(disableControl(fieldDAO));
+        properties += " :rules=\"rules." + getVariableName(fieldDAO) + "\"\n";
+       return properties;
+
+    }
+
 
     private String selectField(FieldDAO fieldDAO) {
  return basicProperties(fieldDAO)+
-         "@ok=\"controller."+fieldDAO.getVariableName()+"Ok\"\n" +
+         "@ok=\"controller."+dialogOkMtdName(fieldDAO)+"\"\n" +
 "          :items=\"controller."+getStoreVariableName(fieldDAO)+".mini\"\n" +
 "          :headers=\"controller."+Utilities.getVariableName(fieldDAO.getReferences())+"Nav.menu.miniHeaders\"\n" +
 "        ";
@@ -113,54 +130,56 @@ public class Vue extends Vue3Utils {
         
 
     }
+    
+   
 
-    public String dialogModelVariableName(FieldDAO fieldDAO) {
-        return fieldDAO.getVariableName() + "Dialog";
-    }
-
-    public String dialogModelDataVariable(FieldDAO fieldDAO) {
-        return dialogModelVariableName(fieldDAO) + ": false,\n";
-    }
-
-    public String dialogDataObjectDataName(FieldDAO fieldDAO) {
-        return fieldDAO.getVariableName() + "Data";
-    }
-
-    public String dialogDataObject(FieldDAO fieldDAO) {
-        return dialogDataObjectDataName(fieldDAO) + ": null,\n";
-    }
-
-    public String showDialogDataVariables() {
-        return fields.stream()
-                .filter(f -> f.isSelect())
-                .map(f -> this.dialogModelDataVariable(f))
-                .collect(Collectors.joining());
-    }
-
-    public String dialogDataObjects() {
-        String dObject = fields.stream()
-                .filter(f -> f.isSelect())
-                .map(f -> this.dialogDataObject(f))
-                .collect(Collectors.joining());
-
-        return dObject.equals("") ? "" : dObject.concat("mtdsProvided: true,\n");
-    }
-
-    public String dialogDataWatcher(FieldDAO fieldDAO) {
-        String dialogDataObjectName = dialogDataObjectDataName(fieldDAO);
-        String body = "if(this." + dialogDataObjectName + "){\n"
-                + "        this." + objectVariableName + "." + fieldDAO.getVariableName() + " = this." + dialogDataObjectName + ".id;\n"
-                + "      }\n";
-        return Utilities.makeMethodJs("", "", dialogDataObjectName,
-                "", body);
-    }
-
-    public String dialogDataWatchers() {
-        return fields.stream()
-                .filter(f -> f.isSelect())
-                .map(f -> this.dialogDataWatcher(f))
-                .collect(Collectors.joining());
-    }
+//    public String dialogModelVariableName(FieldDAO fieldDAO) {
+//        return fieldDAO.getVariableName() + "Dialog";
+//    }
+//
+//    public String dialogModelDataVariable(FieldDAO fieldDAO) {
+//        return dialogModelVariableName(fieldDAO) + ": false,\n";
+//    }
+//
+//    public String dialogDataObjectDataName(FieldDAO fieldDAO) {
+//        return fieldDAO.getVariableName() + "Data";
+//    }
+//
+//    public String dialogDataObject(FieldDAO fieldDAO) {
+//        return dialogDataObjectDataName(fieldDAO) + ": null,\n";
+//    }
+//
+//    public String showDialogDataVariables() {
+//        return fields.stream()
+//                .filter(f -> f.isSelect())
+//                .map(f -> this.dialogModelDataVariable(f))
+//                .collect(Collectors.joining());
+//    }
+//
+//    public String dialogDataObjects() {
+//        String dObject = fields.stream()
+//                .filter(f -> f.isSelect())
+//                .map(f -> this.dialogDataObject(f))
+//                .collect(Collectors.joining());
+//
+//        return dObject.equals("") ? "" : dObject.concat("mtdsProvided: true,\n");
+//    }
+//
+//    public String dialogDataWatcher(FieldDAO fieldDAO) {
+//        String dialogDataObjectName = dialogDataObjectDataName(fieldDAO);
+//        String body = "if(this." + dialogDataObjectName + "){\n"
+//                + "        this." + objectVariableName + "." + fieldDAO.getVariableName() + " = this." + dialogDataObjectName + ".id;\n"
+//                + "      }\n";
+//        return Utilities.makeMethodJs("", "", dialogDataObjectName,
+//                "", body);
+//    }
+//
+//    public String dialogDataWatchers() {
+//        return fields.stream()
+//                .filter(f -> f.isSelect())
+//                .map(f -> this.dialogDataWatcher(f))
+//                .collect(Collectors.joining());
+//    }
 
  
 
@@ -174,7 +193,7 @@ public class Vue extends Vue3Utils {
     }
 
     private String comboProperties(FieldDAO fieldDAO) {
-        return this.basicProperties(fieldDAO)
+        return this.basicNoCounterProperties(fieldDAO)
                 .concat(":items=\"" + callStoreDataVaribale(fieldDAO) + "\"\n"
                         .concat(":loading=\"" + callStoreDataVaribaleLoading(fieldDAO) + "\"\n")
                         + textValueProperties(fieldDAO)   + "          ");
@@ -188,7 +207,7 @@ public class Vue extends Vue3Utils {
     }
 
     private String disableControl(FieldDAO fieldDAO) {
-        return fieldDAO.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Read_Only.name()) ? "disabled\n" : "";
+        return fieldDAO.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Read_Only.name())||fieldDAO.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name()) ? "disabled\n" : "";
 
     }
 
@@ -243,25 +262,25 @@ public class Vue extends Vue3Utils {
         return this.noValidationProps(fieldDAO);
     }
 
-    private String getLengthRule(FieldDAO fieldDAO) {
-        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReferance())
-                ? "(v) => v.length < " + fieldDAO.getSize() + " || \"" + fieldDAO.getCaption() + " length must be "
-                + "less or equal to " + fieldDAO.getSize() + "\"," : "";
-    }
+//    private String getLengthRule(FieldDAO fieldDAO) {
+//        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReferance())
+//                ? "(v) => v.length < " + fieldDAO.getSize() + " || \"" + fieldDAO.getCaption() + " length must be "
+//                + "less or equal to " + fieldDAO.getSize() + "\"," : "";
+//    }
 
-    private String rules(FieldDAO fieldDAO) {
-        if (fieldDAO.getControlType().equals(UIControls.CheckBox)) {
-            return "";
-        }
-        String rules = fieldDAO.getVariableName() + "Rules: [(v) => !!v || \"" + fieldDAO.getCaption() + " is required\",\n";
-        if (fieldDAO.getDataType().equalsIgnoreCase("String")) {
-            rules += getLengthRule(fieldDAO);
-        }
-
-        rules += " ],";
-
-        return rules;
-    }
+//    private String rules(FieldDAO fieldDAO) {
+//        if (fieldDAO.getControlType().equals(UIControls.CheckBox)) {
+//            return "";
+//        }
+//        String rules = fieldDAO.getVariableName() + "Rules: [(v) => !!v || \"" + fieldDAO.getCaption() + " is required\",\n";
+//        if (fieldDAO.getDataType().equalsIgnoreCase("String")) {
+//            rules += getLengthRule(fieldDAO);
+//        }
+//
+//        rules += " ],";
+//
+//        return rules;
+//    }
 
 
 
@@ -328,14 +347,14 @@ public class Vue extends Vue3Utils {
 
     }
 
-    private String dataNavLines() {
-        String lines = "";
-        lines = this.fields.stream()
-                .filter(p -> p.getControlType().equals(UIControls.TableView)
-                || p.isSelect())
-                .map(f -> dataNavLine(f)).reduce(lines, String::concat);
-        return lines;
-    }
+//    private String dataNavLines() {
+//        String lines = "";
+//        lines = this.fields.stream()
+//                .filter(p -> p.getControlType().equals(UIControls.TableView)
+//                || p.isSelect())
+//                .map(f -> dataNavLine(f)).reduce(lines, String::concat);
+//        return lines;
+//    }
 
 
     public String makeFormDataLine(FieldDAO fieldDAO, String variable) {

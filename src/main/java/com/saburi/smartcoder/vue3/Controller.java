@@ -146,11 +146,16 @@ public class Controller extends Vue3Utils {
         if (!fieldDAO.isSelect()) {
             return "";
         }
-        String okMethodName = fieldDAO.getVariableName() + "Ok";
+        String variableName= this.getVariableName(fieldDAO);
+        String okMethodName =dialogOkMtdName(fieldDAO);
+        String valuePath ="controller.model.value."+ variableName ;
+        String dataDotId =  " data.id";
+        String setValue = fieldDAO.isCollection()?String.format("%s.push(%s)", valuePath, dataDotId)
+                :String.format("%s=%s", valuePath, dataDotId);
         return "const " + okMethodName + " = (data) => {\n"
                 + "    if (data) {\n"
                 + "     \n"
-                + "      controller.model.value." + fieldDAO.getVariableName() + " = data.id;\n"
+                + "      " + setValue + ";\n"
                 + "\n"
                 + "    }\n"
                 + "  };\n"

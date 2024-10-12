@@ -17,8 +17,8 @@ import java.util.List;
  *
  * @author samburiima
  */
-public abstract class Vue3Utils extends ProjectFile{
-    
+public abstract class Vue3Utils extends ProjectFile {
+
     protected String objectName;
     protected String moduleName;
     protected List<FieldDAO> fields;
@@ -27,10 +27,11 @@ public abstract class Vue3Utils extends ProjectFile{
     protected String controllerVariableName;
     protected String store = "Store";
     protected Project project;
+    protected final boolean hasMuiltipart;
 
     public Vue3Utils(FileModel fileModel) {
         super(fileModel);
-        this.project=fileModel.getProject();
+        this.project = fileModel.getProject();
         this.objectName = fileModel.getObjectName();
         this.moduleName = fileModel.getModuleName();
         this.fields = fileModel.getFields().stream().filter(f -> !f.getSaburiKey()
@@ -38,8 +39,9 @@ public abstract class Vue3Utils extends ProjectFile{
         this.objectVariableName = Utilities.getVariableName(this.objectName);
         this.controller = this.objectName.concat("Controller");
         this.controllerVariableName = Utilities.getVariableName(this.controller);
+        this.hasMuiltipart = Utilities.hasMultipart(fields);
     }
-    
+
     public boolean forceReferences(FieldDAO fieldDAO) {
         String proiectName = fieldDAO.getProjectName();
         return fieldDAO.isReferance() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
@@ -54,6 +56,14 @@ public abstract class Vue3Utils extends ProjectFile{
     public boolean isSameModule(FieldDAO fieldDAO) {
         return this.moduleName.equalsIgnoreCase(this.getModuleName(fieldDAO));
     }
+
+    public String getVariableName(FieldDAO fieldDAO) {
+        if(fieldDAO.isCollection()) return fieldDAO.getVariableName();
+        return fieldDAO.getDBColumnName(true);
+    }
+    
+    public String dialogOkMtdName(FieldDAO fieldDAO){
+    return getVariableName(fieldDAO)+ "Ok";}
 
     public String getReferenceObjectName(FieldDAO fieldDAO) {
         if (!fieldDAO.isReferance()) {
@@ -109,6 +119,14 @@ public abstract class Vue3Utils extends ProjectFile{
 
     }
 
+    protected String getFieldPath(FieldDAO f) {
+
+        if (f.isForeignKey(forceReferences(f)) && !f.isCollection()) {
+            return f.getVariableName().concat(".id");
+        }
+        return f.getVariableName();
+    }
+
     public String predictLookupObjectName(FieldDAO fieldDAO) {
         String references = fieldDAO.getReferences();
         String fieldName = fieldDAO.getFieldName();
@@ -150,23 +168,17 @@ public abstract class Vue3Utils extends ProjectFile{
         return String.format("controller.%s.%sLoading", getStoreVariableName(fieldDAO),
                 Utilities.getVariableName(getReferencingName(fieldDAO)));
     }
-    
+
     @Override
     protected String getBaseFolder() {
         return this.project.getBaseFolder().toLowerCase();
 
     }
-    
 
     @Override
     protected String getFolderName() {
         return this.moduleName.concat(FILE_SEPARATOR).concat(objectName).toLowerCase();
 
     }
-        
-    
-    
-    
-    
 
 }

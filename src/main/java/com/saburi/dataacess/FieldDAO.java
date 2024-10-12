@@ -323,7 +323,8 @@ public class FieldDAO {
     public String getDBColumnName(boolean forceReferences) {
         if (isForeignKey(forceReferences)
                 && !getReferences().equalsIgnoreCase("RevInfo")) {
-            return this.getVariableName().concat(forceReferences ? "Id" : "");
+           
+            return variableName.endsWith("Id")?variableName: variableName.concat(forceReferences ? "Id" : "");
         }
         return this.getVariableName();
     }
