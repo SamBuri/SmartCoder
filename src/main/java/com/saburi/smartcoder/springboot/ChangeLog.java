@@ -5,12 +5,10 @@
 package com.saburi.smartcoder.springboot;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Field;
-import com.saburi.model.Project;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Utilities;
-import static com.saburi.utils.Utilities.isNullOrEmpty;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.logging.Level;
@@ -21,35 +19,14 @@ import java.util.stream.Collectors;
  *
  * @author samburiima
  */
-public class ChangeLog {
+public class ChangeLog extends ResourceFile{
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private String primaryKeyVariableName;
-    private FieldDAO primaryKeyFied;
-    private final String objectVariableName;
-    private final Project project;
-    private final Enums.ProjectTypes projectType;
-    private final ProjectDAO oProjectDAO = new ProjectDAO();
-    private final Enums.EntityTypes entityType;
-    private final String idDataType;
-
-    public ChangeLog(String objectName, Project project, List<FieldDAO> fields, Enums.EntityTypes entityType) {
-        this.objectName = objectName;
-        this.project = project;
-        this.projectType = this.project.getProjectType();
-        this.entityType = entityType;
-
-        this.fields = fields.stream()
-                .filter(p -> !p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name()))
-                .collect(Collectors.toList());
-
-        primaryKeyFied = Utilities.getPrimaryKey(fields);
-        this.primaryKeyVariableName = primaryKeyFied == null ? "id" : primaryKeyFied.getVariableName();
-        this.idDataType = primaryKeyFied == null ? Utilities.getIdWrapperDataType(entityType) : primaryKeyFied.getDataType();
-        this.objectVariableName = Utilities.getVariableName(objectName);
-
+    public ChangeLog(FileModel fileModel) {
+        super(fileModel);
+        this.fields =this.fields.stream().filter(f->!f.getFieldName().equalsIgnoreCase("Id")).collect(Collectors.toList());
     }
+
+    
 
     public List<FieldDAO> constantFields() throws Exception {
 
@@ -79,10 +56,7 @@ public class ChangeLog {
         return revFields;
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String proiectName = fieldDAO.getProjectName();
-        return this.projectType.equals(Enums.ProjectTypes.Springboot_API) ? proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName) : true;
-    }
+    
 
     private String makeColumnName(FieldDAO fieldDo) {
 
@@ -108,7 +82,7 @@ public class ChangeLog {
         String autoIncrement = "";
         boolean isAutoIdByEntityType = (this.entityType == Enums.EntityTypes.Auto_ID_Int
                 || this.entityType == Enums.EntityTypes.Auto_ID_Long);
-        if (!isAudit(prefix) &&   (fieldDo.isPrimaryKeyAuto() || (fieldDo.isPrimaryKey() && isAutoIdByEntityType))) {
+        if (!isAudit(prefix) && (fieldDo.isPrimaryKeyAuto() || (fieldDo.isPrimaryKey() && isAutoIdByEntityType))) {
             autoIncrement = " autoIncrement=\"true\"";
         }
 
@@ -123,7 +97,7 @@ public class ChangeLog {
 
     }
 
-    private String makePrimaryKeyFiled(String prefix) {
+    private String makePrimaryKeyField(String prefix) {
         if (this.primaryKeyFied != null) {
             return "";
         }
@@ -131,6 +105,7 @@ public class ChangeLog {
 
             Field field = new Field("Id", "Id", idDataType);
             field.setKey(Enums.keys.Primary.name());
+            field.setSize(20);
             FieldDAO fdao = new FieldDAO(field);
             return this.makeColumn(fdao, prefix);
         } catch (Exception e) {
@@ -140,17 +115,17 @@ public class ChangeLog {
         }
 
     }
-    
-     private String makeIdHelperField(String prefix) {
-        
-       
-        
-          boolean isIdGen =  this.entityType.equals(Enums.EntityTypes.Auto_ID_Gen);
-          
-          if(!isIdGen) return "";
+
+    private String makeIdHelperField(String prefix) {
+
+        boolean isIdGen = this.entityType.equals(Enums.EntityTypes.Auto_ID_Gen);
+
+        if (!isIdGen) {
+            return "";
+        }
         try {
 
-            Field field = new Field("IdHelepr", "Id Helper", "int");
+            Field field = new Field("IdHelper", "Id Helper", "int");
             field.setSaburiKey(Enums.Saburikeys.ID_Helper.name());
             FieldDAO fdao = new FieldDAO(field);
             return this.makeColumn(fdao, prefix);
@@ -178,9 +153,9 @@ public class ChangeLog {
     private String tableName(String prefix) {
         return Utilities.toPlural(objectName).concat(prefix).toLowerCase();
     }
-    
-    private boolean isAudit(String prefix){
-     return  prefix.equalsIgnoreCase("_aud") || prefix.equalsIgnoreCase("_rev");
+
+    private boolean isAudit(String prefix) {
+        return prefix.equalsIgnoreCase("_aud") || prefix.equalsIgnoreCase("_rev");
     }
 
     private String makeColumnConstraints(FieldDAO fieldDAO, String prefix) {
@@ -196,7 +171,6 @@ public class ChangeLog {
         String columnName = makeColumnName(fieldDAO);
         String tableName = tableName(prefix);
         String constraintName = tableName + "_" + columnName;
-       
 
         String pk = "";
         if (isPrimary) {
@@ -206,7 +180,7 @@ public class ChangeLog {
         String fk = "";
         if (isForeign) {
             String referenceTableName = Utilities.toPlural(fieldDAO.getReferences()).toLowerCase();
-             String referencedColumnName=  referenceTableName.equalsIgnoreCase("revinfo")?"rev":"id";
+            String referencedColumnName = referenceTableName.equalsIgnoreCase("revinfo") ? "rev" : "id";
 
             fk = "foreignKeyName=\"fk_" + constraintName + "\"  referencedTableName=\"" + referenceTableName + "\" "
                     + "referencedColumnNames=\"" + referencedColumnName + "\" ";
@@ -235,13 +209,10 @@ public class ChangeLog {
             return "BIGINT";
         } else if (dataType.equalsIgnoreCase("short")) {
             return "TINYINT(3)";
-        } 
-         else if (dataType.equalsIgnoreCase("LocalDate")
-                 ||dataType.equalsIgnoreCase("Date")) {
+        } else if (dataType.equalsIgnoreCase("LocalDate")
+                || dataType.equalsIgnoreCase("Date")) {
             return "DATE";
-        }
-        
-        else {
+        } else {
             return dataType.toUpperCase();
         }
     }
@@ -251,9 +222,11 @@ public class ChangeLog {
         String author = "Sam Buriima";
         String id = project.getProjectName() + "_create_" + tableName;
         String prefix = "";
-        String columns = this.makePrimaryKeyFiled(prefix);
-        columns+=makeIdHelperField(prefix);
-        columns = fields.stream().map(f -> makeColumn(f, prefix))
+        String columns = this.makePrimaryKeyField(prefix);
+        columns += makeIdHelperField(prefix);
+        columns = fields.stream()
+                .filter(f -> !f.isCollection())
+                .map(f -> makeColumn(f, prefix))
                 .reduce(columns, String::concat);
 
         columns += makeConstantColums(prefix);
@@ -298,23 +271,23 @@ public class ChangeLog {
         String author = "Sam Buriima";
         String id = project.getProjectName() + "_create_" + tableName;
 
-        String columns = this.makePrimaryKeyFiled(prefix);
+        String columns = this.makePrimaryKeyField(prefix);
         String revColums = "";
 
         revColums = auditFields().stream().map(f -> makeColumn(f, prefix))
                 .reduce(revColums, String::concat);
         columns += revColums;
-        columns+=makeIdHelperField(prefix);
+        columns += makeIdHelperField(prefix);
         columns = fields
-                 .stream()
-                 .map(f -> makeColumn(f, prefix))
-                  .reduce(columns, String::concat);
+                .stream()
+                .filter(f -> !f.isCollection())
+                .map(f -> makeColumn(f, prefix))
+                .reduce(columns, String::concat);
 
         columns += makeConstantColums(prefix);
 
 //        List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
 //                .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
-
 //        String uniqueColumnGroupsConstraints = "";
 //        if (!uniqueGroups.isEmpty()) {
 //            FieldDAO fdao = uniqueGroups.get(0);
@@ -333,7 +306,6 @@ public class ChangeLog {
 //                    + "        <addUniqueConstraint tableName=\"" + tableName + "\" columnNames=\"" + columnNames + "\" constraintName=\"" + constraintName + "\"/>\n"
 //                    + "    </changeSet>\n";
 //        }
-
         return "<changeSet author=\"" + author + "\" id=\"" + id + "\">\n"
                 + "    <createTable tableName=\"" + tableName + "\">\n"
                 + columns
@@ -342,7 +314,7 @@ public class ChangeLog {
                 + "            <dropTable tableName=\"" + tableName + "\"/>\n"
                 + "        </rollback>"
                 + "</changeSet>\n"
-//                + uniqueColumnGroupsConstraints
+                //                + uniqueColumnGroupsConstraints
                 + "";
     }
 
@@ -362,5 +334,31 @@ public class ChangeLog {
                         .concat("</databaseChangeLog>");
 
     }
+
+    @Override
+    protected String getFolderName() {
+        return "changelogs".concat(FILE_SEPARATOR).concat(objectName).toLowerCase(); 
+    }
+    
+    
+
+    @Override
+    protected String getFileName() {
+       return "create_" + Utilities.toPlural(objectName).toLowerCase();
+    }
+
+    @Override
+    protected String getFileExtension() {
+        return "xml";
+    }
+    
+    
+
+    @Override
+    protected String create() throws Exception {
+       return makeDocument();
+    }
+    
+    
 
 }

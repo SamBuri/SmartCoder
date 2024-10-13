@@ -8,6 +8,7 @@ package com.saburi.smartcoder.springboot;
 import com.saburi.dataacess.FieldDAO;
 import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.isNullOrEmpty;
@@ -17,21 +18,13 @@ import java.util.List;
  *
  * @author samburiima
  */
-public class Response {
+public class Response extends DtoClass{
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private final Project project;
-    private final ProjectDAO oProjectDAO = new ProjectDAO();
-    private final Project commonProject;
-
-    public Response(String objectName, Project project, List<FieldDAO> fields) throws Exception {
-        this.objectName = objectName;
-        this.fields = fields;
-        this.project = project;
-        this.commonProject = oProjectDAO.get(project.getCommonProjectName());
-        
+    public Response(FileModel fileModel) {
+        super(fileModel);
     }
+
+   
 
     private String makeImport(FieldDAO fieldDAO) {
         String enumPackage = (fieldDAO.referencesIN(project)) ? project.getBasePackage() : commonProject.getBasePackage();
@@ -48,10 +41,7 @@ public class Response {
         return imp;
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String projectName = fieldDAO.getProjectName();
-        return fieldDAO.isReferance() && (projectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(projectName));
-    }
+  
 
     private String makeField(FieldDAO fieldDAO) {
         if (forceReferences(fieldDAO) && !fieldDAO.getEnumerated()) {
@@ -59,6 +49,8 @@ public class Response {
         }
         return fieldDAO.getDeclaration(false, false);
     }
+    
+    
 
     private String makeRecord() {
 
@@ -79,10 +71,16 @@ public class Response {
                 + "}";
     }
 
+    @Override
     public String create() {
         return "package ".concat(project.getBasePackage() + "." + objectName.toLowerCase().concat(".dtos;\n"))
                 .concat(this.makeImports())
                 .concat(this.makeRecord());
+    }
+
+    @Override
+    protected String getFileName() {
+       return objectName.concat("Response");
     }
 
 }

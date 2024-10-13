@@ -9,6 +9,7 @@ import com.saburi.dataacess.FieldDAO;
 import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
 import com.saburi.smartcoder.CodeGenerator;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.JavaClass;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Enums.EntityTypes;
@@ -24,31 +25,17 @@ import java.util.stream.Collectors;
  *
  * @author Hp
  */
-public class Repository extends CodeGenerator {
+public class Repository extends SpringbootUtils {
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private final FieldDAO primaryKeyFied;
-    private final Project project;
 
-    public Repository(String objectName, Project project, List<FieldDAO> fields) {
-        this.objectName = objectName;
-        this.fields = fields.stream()
-                .filter((p) -> !p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name()))
-                .collect(Collectors.toList());
-
-        primaryKeyFied = Utilities.getPrimaryKey(fields);
-        this.project = project;
+    public Repository(FileModel fileModel) {
+        super(fileModel);
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String projectName = fieldDAO.getProjectName();
-        return this.project.getProjectType().equals(Enums.ProjectTypes.Springboot_API) ? projectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(projectName) : true;
-    }
+   
 
     public String makeImports(Project project, EntityTypes entityTypes) throws Exception {
-        Project commonProject = new ProjectDAO().get(project.getCommonProjectName());
-
+       
         String imp = "import " + commonProject.getBasePackage() + ".repositories.PagingAndSortingRepo;\n";
         imp += "import " + project.getBasePackage() + ".".concat((objectName).toLowerCase()).concat(".dtos.") + objectName.concat(Enums.WebFiles.Mini.name()).concat(";\n");
         imp += "import java.util.List;\n";
@@ -137,8 +124,16 @@ public class Repository extends CodeGenerator {
                 .concat(param).concat(");\n");
     }
 
+    @Override
+    protected boolean isValid() throws Exception {
+          CodeGenerator.validate(fields, project);
+        return super.isValid(); 
+    }
+    
+    
+
     public String makeClass(Project project, Enums.EntityTypes entityTypes) throws Exception {
-        validate(fields, project);
+      
         String className = objectName + "" + Enums.WebFiles.Repo.name();
 
         String methods = methods(entityTypes).concat("\npublic List<" + objectName.concat(Enums.WebFiles.Mini.name()) + "> findAllBy();\n");
@@ -148,6 +143,16 @@ public class Repository extends CodeGenerator {
         String packageName = project.getBasePackage() + "." + objectName.toLowerCase();
         JavaClass javaClass = new JavaClass(packageName, className, this.makeImports(project, entityTypes), methods);
         return javaClass.makeInterfaceExt("PagingAndSortingRepo<" + objectName + ", " + dataType + ">");
+    }
+
+    @Override
+    protected String getFileName() {
+         return repo;
+    }
+
+    @Override
+    protected String create() throws Exception {
+        return makeClass(project, entityType);
     }
 
 }

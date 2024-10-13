@@ -3,32 +3,22 @@
  * To change this template file, choose Tools | Templates
  * and open the template in the editor.
  */
-package com.saburi.smartcoder.vuejs;
+package com.saburi.smartcoder.vue3;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.utils.Enums;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.utils.Utilities;
-import java.util.List;
 
 /**
  *
  * @author samburiima
  */
-public class VueNav {
+public class VueNav extends Vue3Utils{
 
-    private final String objectName;
-    private final String objectCaption;
-    private final String moduleName;
-    private final List<FieldDAO> fields;
-    private final String objectVariablename;
     private final String searchObjectName;
 
-    public VueNav(String objectName, String objectCaption, String moduleName, List<FieldDAO> fields) {
-        this.objectName = objectName;
-        this.moduleName = moduleName.toLowerCase();
-        this.fields = fields;
-        this.objectVariablename = Utilities.getVariableName(objectName);
-        this.objectCaption = objectCaption;
+    public VueNav(FileModel fileModel) {
+        super(fileModel);
         this.searchObjectName = Utilities.toPlural(objectName);
        
     }
@@ -46,7 +36,7 @@ public class VueNav {
          
         }
         return "id: \"" + this.moduleName.toLowerCase() + "." + this.objectName.toLowerCase() + "\",\n"
-                + "        name: \"" + Utilities.toPlural(this.objectCaption) + "\",\n"
+                + "        title: \"" + Utilities.toPlural(this.fileModel.getObjectCaption()) + "\",\n"
                 + "        component: " + this.objectName + ",\n"
                 + "        path: \"" + Utilities.toPlural(this.objectName.toLowerCase()) + "\",\n"
                 + "        width: \""+width+"px\",\n";
@@ -54,7 +44,7 @@ public class VueNav {
     }
 
     private String headerValue(FieldDAO fieldDAO) {
-        return fieldDAO.isReferance() && !fieldDAO.getEnumerated() ? fieldDAO.getVariableName() : fieldDAO.getVariableName();
+        return  getFieldPath(fieldDAO);
     }
 
     private String header(FieldDAO fieldDAO) {
@@ -72,19 +62,22 @@ public class VueNav {
         if(fieldDAO.getDataType().equalsIgnoreCase("DateTime")||fieldDAO.getDataType().equalsIgnoreCase("LocalDateTime")){
             isDateTime = ", isDateTime: true";
         }
-        return "{ text: \"" + fieldDAO.getCaption() + "\", value: \""+ headerValue(fieldDAO)+"\"" +numeric+" "+isDate+""+isDateTime+"},\n";
+        return "{ title: \"" + fieldDAO.getCaption() + "\", key: \""+ headerValue(fieldDAO)+"\"" +numeric+" "+isDate+""+isDateTime+"},\n";
 
     }
 
     private String headers() {
         String headers = "{\n"
-                + "                text: \"Id\",\n"
+                + "                title: \"Id\",\n"
                 + "                align: \"start\",\n"
                 + "                // sortable: false,\n"
-                + "                value: \"id\",\n"
+                + "                key: \"id\",\n"
                 + "            },\n";
 
-        headers = fields.stream().map(fieldDAO -> this.header(fieldDAO)).reduce(headers, String::concat);
+        headers = fields.stream()
+                .filter(f->!f.isCollection())
+                .map(fieldDAO -> this.header(fieldDAO))
+                .reduce(headers, String::concat);
         headers = headers.concat(this.constantHeaders());
         headers = "headers: [" + headers + "],\n";
 
@@ -93,18 +86,20 @@ public class VueNav {
     }
     
     String constantHeaders(){
-     return " { text: \"Branch\", value: \"branch\", label: \"Branch\", field: \"branch\" },\n"
-             + "{ text: \"Creation Date\", value: \"creationDate\",  label: \"Creation Date\", field: \"creationDate\", isDateTime: true },\n" +
-"                { text: \"Last Modified Date\", value: \"lastModifiedDate\", isDateTime: true},\n" +
-"                { text: \"Created By\", value: \"createdBy\",  label: \"Created By\", field: \"createdBy\"},\n" +
-"                { text: \"Modified By\", value: \"modifiedBy\", label: \"Modified By\", field: \"modifiedBy\"}";
+     return " { title: \"Branch\", key: \"branch\",},\n"
+             + "{ title: \"Creation Date\", key: \"creationDate\",  label: \"Creation Date\", field: \"creationDate\", isDateTime: true },\n" +
+"                { title: \"Last Modified Date\", key: \"lastModifiedDate\", isDateTime: true},\n" +
+"                { title: \"Created By\", key: \"createdBy\", },\n" +
+"                { title: \"Modified By\", key: \"modifiedBy\", }";
     }
     
     private String editHeaders() {
         String headers = "";
 
-        headers = fields.stream().map(fieldDAO -> this.header(fieldDAO)).reduce(headers, String::concat);
-        headers+="{text: \"Actions\", value: \"actions\"}";
+        headers = fields.stream().filter(f->!f.isCollection())
+                .map(fieldDAO -> this.header(fieldDAO))
+                .reduce(headers, String::concat);
+        headers+="{title: \"Actions\", key: \"actions\"}";
         headers = "editHeaders: [" + headers + "],";
 
         return headers;
@@ -112,15 +107,20 @@ public class VueNav {
     }
 
     private String subMenus() {
+        String lowername = objectName.toLowerCase();
         return "children: ["
-                + createSubMenu("New", "0").concat(",\n")
-                + createSubMenu("Edit", "1").concat(",\n")
-                + createSubMenu("History", "2").concat(",\n")
-                        .concat("]");
+                 + createSubMenu("View", Utilities.toPlural(lowername), "").concat(",\n")
+                + createSubMenu("New", lowername, "params: {mode:0}").concat(",\n")
+                 + createSubMenu("Edit", lowername, "params: {mode:1}").concat(",\n")
+                 + createSubMenu("History", lowername, "params: {mode:2}").concat(",\n")
+                .concat("]");
     }
 
-    private String createSubMenu(String name, String mode) {
-        return "{ id: \"" + this.moduleName + "." + objectVariablename + "." + name.replaceAll(" ", "").toLowerCase() + "\", name: \"" + name + "\", route: \"" + objectVariablename.toLowerCase() + "\", mode: " + mode + "}";
+    private String createSubMenu(String name,String path, String params) {
+        String to = " to:{ name: \""+path+"\", "+params+"}";
+        return "{ id: \"" + this.moduleName + "." + objectVariableName + "." 
+                + name.replaceAll(" ", "").toLowerCase() + "\", title: \"" + name + "\", "
+                + to.concat("}");
     }
     
     private String routes(){
@@ -146,6 +146,7 @@ public class VueNav {
     }
     
 
+    @Override
     public String create() {
         String objectNav = Utilities.getVariableName(this.objectName).concat("Nav");
         return this.imports()+" const "
@@ -161,6 +162,16 @@ public class VueNav {
                 .concat("}\n}\n")
                 .concat("export default ".concat(objectNav).concat(";"));
 
+    }
+
+    @Override
+    protected String getFileName() {
+       return objectName.concat("Nav");
+    }
+
+    @Override
+    protected String getFileExtension() {
+        return "js";
     }
 
 }

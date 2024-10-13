@@ -6,60 +6,34 @@
 package com.saburi.smartcoder.springboot;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
 import com.saburi.smartcoder.CodeGenerator;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.JavaClass;
-import com.saburi.utils.Enums;
-import com.saburi.utils.Enums.Saburikeys;
 import com.saburi.utils.Enums.WebFiles;
 import com.saburi.utils.Utilities;
 import static com.saburi.utils.Utilities.addIfNotExists;
 import static com.saburi.utils.Utilities.isNullOrEmpty;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  *
  * @author Hp
  */
-public class Request extends CodeGenerator {
+public class Request extends DtoClass {
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private String primaryKeyVariableName;
-    private FieldDAO primaryKeyFied;
-    private final Project project;
-    ProjectDAO oProjectDAO = new ProjectDAO();
-
-    public Request(String objectName, Project project, List<FieldDAO> fields) {
-        this.objectName = objectName;
-        this.fields = fields.stream()
-                .filter(p -> !(p.getSaburiKey().equalsIgnoreCase(Saburikeys.UI_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Saburikeys.Query_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Saburikeys.Read_Only.name())))
-                .collect(Collectors.toList());
-
-        if (project.getProjectType().equals(Enums.ProjectTypes.Desktop)) {
-            primaryKeyFied = Utilities.getPrimaryKey(fields);
-            this.primaryKeyVariableName = primaryKeyFied.getVariableName();
-        }
-        this.project = project;
+    public Request(FileModel fileModel) {
+        super(fileModel);
+       
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String proiectName = fieldDAO.getProjectName();
-        return this.project.getProjectType().equals(Enums.ProjectTypes.Springboot_API)
-                ? proiectName.equalsIgnoreCase(this.project.getProjectName())
-                || isNullOrEmpty(proiectName) : true;
-    }
+    
 
     public List requestImports(Project currentProject, boolean considerReferences, FieldDAO fieldDAO) throws Exception {
         List list = new ArrayList();
 //        Project lineProject = fieldDAO.getFieldLineProject(currentProject);
 
-        Project commonProject = oProjectDAO.get(project.getCommonProjectName());
         String references = fieldDAO.getReferences();
         String dataType = fieldDAO.getDataType();
         boolean isNull = fieldDAO.getNullable();
@@ -87,13 +61,13 @@ public class Request extends CodeGenerator {
 
             } else {
 
-//                if (considerReferences) {
-//
-//                    if (project.getProjectName().equalsIgnoreCase(currentProject.getProjectName())) {
-//                        addIfNotExists(list, "import " + project.getBasePackage() + "." + references.toLowerCase().concat(".").concat(references));
-//                    }
-//
-//                }
+                if (considerReferences && fieldDAO.isCollection()) {
+
+                    if (project.getProjectName().equalsIgnoreCase(currentProject.getProjectName())) {
+                        addIfNotExists(list, "import " + project.getBasePackage() + "." + references.toLowerCase().concat(".").concat(references));
+                    }
+
+                }
             }
         } else if (dataType.equalsIgnoreCase("String")) {
             addIfNotExists(list, "import jakarta.validation.constraints.Size");
@@ -151,7 +125,7 @@ public class Request extends CodeGenerator {
             return "MultipartFile ".concat(this.getVariableName(f))
                     .concat(newline);
         }
-        if (f.isReferance()) {
+        if (f.isReferance() && !f.isCollection()) {
             return f.getDataType() + " " + this.getVariableName(f).concat(newline);
         }
         return f.getDeclaration(forceReferences(f), newLine);
@@ -232,7 +206,7 @@ public class Request extends CodeGenerator {
     }
 
     public String makeClass(Project project) throws Exception {
-        validate(fields, project);
+      
         String className = objectName + "" + WebFiles.Request.name();
         String constructor = new JavaClass(className).makeNoArgConstructor().concat("\n") + this.makeConstructor();
         String methods = "";
@@ -244,6 +218,26 @@ public class Request extends CodeGenerator {
                 this.makeAnnotedFields(), "", "", methods);
         
         return javaClass.makeClass("", "@Builder\n@Data\n");
+    }
+
+    @Override
+    protected boolean isValid() throws Exception {
+        CodeGenerator.validate(fields, project);
+        return super.isValid(); 
+    }
+    
+    
+
+    @Override
+    protected String getFileName() {
+        return requestObject;
+    }
+
+    
+
+    @Override
+    protected String create() throws Exception {
+       return makeClass(project);
     }
 
 }

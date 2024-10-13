@@ -6,8 +6,8 @@
 package com.saburi.smartcoder;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
+import com.saburi.smartcoder.springboot.SpringbootUtils;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Enums.EntityTypes;
 import com.saburi.utils.Enums.ProjectTypes;
@@ -24,41 +24,19 @@ import java.util.stream.Collectors;
  *
  * @author CLINICMASTER13
  */
-public class Entity extends CodeGenerator {
+public class Entity extends SpringbootUtils {
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private String primaryKeyVariableName;
-    private FieldDAO primaryKeyFied;
-    private final String objectVariableName;
-    private final Project project;
-    private final ProjectTypes projectType;
-    private final ProjectDAO oProjectDAO = new ProjectDAO();
 
-    public Entity(String objectName, Project project, List<FieldDAO> fields) {
-        this.objectName = objectName;
-        this.project = project;
-        this.projectType = this.project.getProjectType();
-        this.fields = fields.stream()
-                .filter(p -> !p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name()))
-                .filter(p -> !(projectType.equals(ProjectTypes.Springboot_API) && p.isPrimaryKey()))
-                .collect(Collectors.toList());
-
-        primaryKeyFied = Utilities.getPrimaryKey(fields);
-        this.primaryKeyVariableName = primaryKeyFied == null ? "id" : primaryKeyFied.getVariableName();
-
-        this.objectVariableName = Utilities.getVariableName(objectName);
-
+    public Entity(FileModel fileModel) {
+        super(fileModel);
+         this.fields =this.fields.stream().filter(f->!f.getFieldName().equalsIgnoreCase("Id")).collect(Collectors.toList());
+        
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String proiectName = fieldDAO.getProjectName();
-        return this.projectType.equals(ProjectTypes.Springboot_API) ? proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName) : true;
-    }
+   
 
     public String makeEntityImports(Project project, EntityTypes entityTypes) throws Exception {
-        Project commonProject = oProjectDAO.get(project.getCommonProjectName());
-        String idImp = project.getProjectType().equals(ProjectTypes.Desktop) ? """
+       String idImp = project.getProjectType().equals(ProjectTypes.Desktop) ? """
                             import jakarta.persistence.Id;
                              """ : "";
         String imp = """
@@ -69,6 +47,9 @@ public class Entity extends CodeGenerator {
                      import org.hibernate.envers.Audited;
                      import org.hibernate.envers.RelationTargetAuditMode;
                      import lombok.Builder;
+                     import lombok.AllArgsConstructor;
+                     import lombok.Getter;
+                     import lombok.Setter;
                      """ + idImp;
         List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
                 .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
@@ -111,31 +92,7 @@ public class Entity extends CodeGenerator {
         return annotedFields;
     }
 
-    public String makeConstructor() {
 
-        String construtorLine = "";
-        String construtorInitials = "";
-        List<FieldDAO> writeFields = this.fields.stream()
-                .filter(p -> !(p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Query_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Read_Only.name())))
-                .collect(Collectors.toList());
-        for (int i = 0; i < writeFields.size(); i++) {
-            FieldDAO field = writeFields.get(i);
-            boolean addToConstructor = this.projectType.equals(ProjectTypes.Desktop) ? !field.isCollection() : true;
-            if (addToConstructor) {
-
-                if (i == 0) {
-                    construtorLine += field.getDeclaration(forceReferences(field), false);
-                } else {
-                    construtorLine += "," + field.getDeclaration(forceReferences(field), false);
-                }
-                construtorInitials += "this." + field.getVariableName() + " = " + field.getVariableName() + ";\n";
-            }
-        }
-
-        return Utilities.makeMethod("public", "", objectName, construtorLine, construtorInitials);
-    }
 
     public String makeProperties() {
         String properties = "";
@@ -300,7 +257,7 @@ public class Entity extends CodeGenerator {
     }
 
     public String makeClass(Project project, EntityTypes entityTypes) throws Exception {
-        validate(fields, project);
+        
         List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
                 .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());
         String uniqueColumnGroupsConstraints = "";
@@ -317,7 +274,7 @@ public class Entity extends CodeGenerator {
             uniqueColumnGroupsConstraints = " ,uniqueConstraints = @UniqueConstraint(columnNames = {" + columnNames + "}, "
                     + "name = \"" + constraintName + "\")\n";
         }
-        String constructor = new JavaClass(objectName).makeNoArgConstructor().concat("\n") + this.makeConstructor();
+        String constructor = new JavaClass(objectName).makeNoArgConstructor().concat("\n");
         String methods = otherMethods(project, entityTypes) + this.overriddenID(project) + this.overriddenDisplayKey();
 
         String entityPackage = project.getEntityPackage();
@@ -326,15 +283,35 @@ public class Entity extends CodeGenerator {
         String imp = project.getProjectType().equals(ProjectTypes.Springboot_API) ? "implements ResponseData" : "";
 
         JavaClass javaClass = new JavaClass(packageName, objectName, this.makeEntityImports(project, entityTypes),
-                this.makeAnnotedFields(), constructor, this.makeProperties(), methods);
+                this.makeAnnotedFields(), constructor, "", methods);
 
-        String entityAnnotation = "@Entity\n@Builder";
+        String entityAnnotation = "@Entity\n@Builder\n@AllArgsConstructor\n"
+                + "@Getter\n"
+                + "@Setter\n";
         String tableName = Utilities.toPlural(objectName).toLowerCase();
         String tableAnnotation = "@Table(name = \"" + tableName + "\"" + uniqueColumnGroupsConstraints + ")";
         String auditAnnotation = "@Audited(targetAuditMode = RelationTargetAuditMode.NOT_AUDITED)";
 
         String topAnnotations = entityAnnotation.concat("\n").concat("\n").concat(tableAnnotation).concat("\n").concat(auditAnnotation);
         return javaClass.makeClass(entityTypes, imp, topAnnotations);
+    }
+
+    @Override
+    protected boolean isValid() throws Exception {
+        CodeGenerator.validate(fields, project);
+        return super.isValid(); 
+    }
+    
+    
+
+    @Override
+    protected String getFileName() {
+       return objectName;
+    }
+
+    @Override
+    protected String create() throws Exception {
+        return makeClass(project, entityType);
     }
 
 }

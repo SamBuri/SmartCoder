@@ -6,70 +6,26 @@
 package com.saburi.smartcoder.springboot;
 
 import com.saburi.dataacess.FieldDAO;
-import com.saburi.dataacess.ProjectDAO;
 import com.saburi.model.Project;
 import com.saburi.smartcoder.CodeGenerator;
+import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.JavaClass;
 import com.saburi.utils.Enums;
-import com.saburi.utils.Enums.EntityTypes;
-import com.saburi.utils.Enums.ServiceTypes;
-import com.saburi.utils.Enums.WebFiles;
 import com.saburi.utils.Utilities;
-import static com.saburi.utils.Utilities.isNullOrEmpty;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 /**
  *
  * @author Hp
  */
-public class ServiceTest {
+public class ServiceTest extends TestClass{
 
-    private final String objectName;
-    private final List<FieldDAO> fields;
-    private String primaryKeyVariableName;
-    private final FieldDAO primaryKeyFied;
-    private final String objectCaption;
-    private final String objectVariableName;
-    private final FieldDAO idGenerator;
-    private final boolean hasGenerator;
-    private final String requestObject;
-    private final String objectRepo;
-    private final String objectRepoVariableName;
-    private final ProjectDAO oProjectDAO = new ProjectDAO();
-    private String idDataType;
-    private EntityTypes entityType;
-    private Project project;
     private static final int OBJECT_NUMBER = 3;
 
-    public ServiceTest(String objectName, String objectCaption, Project project, List<FieldDAO> fields,
-            EntityTypes entityType) {
-        this.objectName = objectName;
-        this.objectCaption = objectCaption;
-        this.project = project;
-        this.objectVariableName = Utilities.getVariableName(objectName);
-        this.fields = fields.stream()
-                .filter(p -> !(p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.UI_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Query_Only.name())
-                || p.getSaburiKey().equalsIgnoreCase(Enums.Saburikeys.Read_Only.name())))
-                .collect(Collectors.toList());
-
-        primaryKeyFied = Utilities.getPrimaryKey(fields);
-        if (primaryKeyFied != null) {
-            this.primaryKeyVariableName = primaryKeyFied.getVariableName();
-        }
-
-        this.idGenerator = Utilities.getIDGenerator(fields);
-        this.hasGenerator = idGenerator != null;
-        requestObject = objectName.concat(WebFiles.Request.name());
-        this.objectRepo = objectName.concat(WebFiles.Repo.name());
-        this.objectRepoVariableName = Utilities.getVariableName(objectRepo);
-        this.entityType = entityType;
-        this.idDataType = primaryKeyFied == null ? Utilities.getIdWrapperDataType(entityType) : primaryKeyFied.getDataType();
+    public ServiceTest(FileModel fileModel) {
+        super(fileModel);
     }
 
+  
     public String makeImports(Project project, Enums.ServiceTypes serviceTypes) throws Exception {
         String dataTypes = Utilities.getNonPrimitiveDataTypeImports(fields);
         return "import " + project.getBasePackage() + "." + objectName.toLowerCase() + ".dtos." + this.objectName + "Request;\n"
@@ -100,11 +56,7 @@ public class ServiceTest {
                 + "   ";
     }
 
-    private boolean forceReferences(FieldDAO fieldDAO) {
-        String projectName = fieldDAO.getProjectName();
-        return this.project.getProjectType().equals(Enums.ProjectTypes.Springboot_API) ? projectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(projectName) : true;
-    }
-
+ 
     private String buildField(FieldDAO fieldDAO, String count) {
         String dataType = fieldDAO.getUsableDataType(this.forceReferences(fieldDAO));
         boolean referencesIn = fieldDAO.referencesIN(project);
@@ -182,19 +134,32 @@ public class ServiceTest {
         return beforeEach() + testSave();
 
     }
+    
+    private String className(){
+        return objectName + "" + Enums.WebFiles.ServiceTest.name();
+    }
 
     public String makeClass(Project project, Enums.ServiceTypes serviceTypes) throws Exception {
         CodeGenerator.validate(fields, project);
-        String className = objectName + "" + Enums.WebFiles.ServiceTest.name();
-
+       
         String methods = methods();
         String annotation = "@SpringBootTest\n"
                 + "@Testcontainers\n"
                 + "@ActiveProfiles(\"test\")\n";
 
         String packageName = project.getBasePackage() + "." + objectName.toLowerCase();
-        JavaClass javaClass = new JavaClass(packageName, className, this.makeImports(project, serviceTypes), this.makeClassFields() + methods);
+        JavaClass javaClass = new JavaClass(packageName, className(), this.makeImports(project, serviceTypes), this.makeClassFields() + methods);
         return javaClass.makeClass("", annotation);
+    }
+
+    @Override
+    protected String getFileName() {
+        return className();
+    }
+
+    @Override
+    protected String create() throws Exception {
+        return makeClass(project, fileModel.getServiceType());
     }
 
 }

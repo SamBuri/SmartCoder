@@ -115,11 +115,12 @@ public class ProjectController extends EditController {
             String projectName = getText(txtProjectName, "Project Name");
             ProjectTypes projectType = (ProjectTypes) getSelectedValue(cboProjectType, "Project Type");
             
-            boolean forceCommonProject=projectType.equals(ProjectTypes.Vue)?false:cboCommonProjectName.getItems().size()>0;
+            boolean forceCommonProject=projectType.equals(ProjectTypes.Vue)||projectType.equals(ProjectTypes.Vue3)?false:cboCommonProjectName.getItems().size()>0;
             String commonProjectName = getText(cboCommonProjectName, "Common Project Name", forceCommonProject);
             commonProjectName =Utilities.isNullOrEmpty(commonProjectName)?projectName:commonProjectName;
             boolean isDesktop = projectType.equals(ProjectTypes.Desktop);
-            String basePackage = getText(txtBasePackage, "Base Package");
+           
+            String basePackage = getText(txtBasePackage, "Base Package",!forceCommonProject);
             String baseFolder = getText(txaBaseFolder, "Base Folder");
             String testFolder = getText(txaTestFolder, "Test Folder");
 
