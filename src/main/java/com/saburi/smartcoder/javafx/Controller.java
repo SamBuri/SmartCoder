@@ -106,7 +106,7 @@ public class Controller {
                 } else {
                     properties += "@FXML private " + field.getControlType().name() + " " + field.getControlName() + ";\n";
                     properties += field.annotedImageButtons();
-                    if (field.isReferance() && !field.getEnumerated()) {
+                    if (field.isReference() && !field.getEnumerated()) {
                         properties += "@FXML private MenuItem cmiSelect" + field.getFieldName() + ";\n";
                         if (!(field.getReferences().equalsIgnoreCase("LookupData") || field.getReferences().equalsIgnoreCase(objectName))) {
                             addIfNotExists(globalRefObjects, field.getReferencesDA());
@@ -124,7 +124,7 @@ public class Controller {
             List<FieldDAO> subFields = field.getSubFieldListDAO();
 
             for (FieldDAO subField : subFields) {
-                if (subField.isReferance()) {
+                if (subField.isReference()) {
                     if (!field.getReferences().equalsIgnoreCase(objectName)) {
                         tableColumns += subField.getReferencesDA() + " o" + subField.getReferencesDA() + " = new " + subField.getReferencesDA() + "();\n";
                     }
@@ -150,7 +150,7 @@ public class Controller {
         if (IDHelperObject == null) {
             return "";
         } else if (idGeneratorObject != null) {
-            if (idGeneratorObject.isReferance()) {
+            if (idGeneratorObject.isReference()) {
                 return idGeneratorObject.getControlName() + ".setOnAction(e->" + getNextIDLineCall() + ");";
             } else {
                 return idGeneratorObject.getControlName() + ".focusedProperty().addListener((ov, t, t1) -> {\n"
@@ -191,7 +191,7 @@ public class Controller {
                 project = field.getProject();
             }
 
-            if (field.isReferance() && !field.isCollection()) {
+            if (field.isReference() && !field.isCollection()) {
 
                 if (field.getEnumerated()) {
                     comboLoadings += field.getControlName() + ".setItems(FXCollections.observableArrayList(" + field.getReferences() + ".values()));";
@@ -324,7 +324,7 @@ public class Controller {
                 updateBody += field.getControlName() + ".setItems(FXCollections.observableArrayList(" + daVariableName + ".get" + field.getFieldName() + "DAs()));";
                 updateBody += "addRow(" + field.getControlName() + ", new " + field.getReferencesDA() + "());\n";
 
-            } else if (field.isReferance() && !field.getEnumerated()) {
+            } else if (field.isReference() && !field.getEnumerated()) {
                 updateBody += field.setControlText(daVariableName.concat(".get" + field.getFieldName() + "()"));
             } else {
                 updateBody += field.setControlText(daVariableName.concat(".").concat(field.getCall()));
@@ -380,7 +380,7 @@ public class Controller {
 
             String idGeneratorVariableName = idGeneratorObject.getVariableName();
             String references = idGeneratorObject.getReferences();
-            if (idGeneratorObject.isReferance()) {
+            if (idGeneratorObject.isReference()) {
 
                 if (idGeneratorObject.getEnumerated()) {
                     body = references + " " + idGeneratorVariableName + " = (" + references + ") "

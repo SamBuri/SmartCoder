@@ -112,9 +112,9 @@ public class ControllerTest extends TestClass{
 
     public String buildObject() {
         String builderParam = "";
-        for (FieldDAO f : this.fields) {
-            builderParam += this.buildField(f);
-        }
+//        for (FieldDAO f : this.fields) {
+//            builderParam += this.buildField(f);
+//        }
         return objectName + ".builder()\n" + builderParam + ".build()";
 
     }

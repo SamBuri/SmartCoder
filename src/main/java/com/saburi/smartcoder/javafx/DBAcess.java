@@ -89,7 +89,7 @@ public class DBAcess extends CodeGenerator {
         String variableName = fieldDAO.getVariableName();
         String fieldName = fieldDAO.getFieldName();
         String references = fieldDAO.getReferences();
-        String referenceVariableName = fieldDAO.isReferance()? Utilities.getVariableName(references):"";
+        String referenceVariableName = fieldDAO.isReference()? Utilities.getVariableName(references):"";
         String referenceDA = references.concat("DA");
         String declarationTrueFalse = fieldDAO.getDeclaration(true, false);
         String controlName = fieldDAO.getControlName();
@@ -105,7 +105,7 @@ public class DBAcess extends CodeGenerator {
                     + "\n"
                     + "    }";
 
-        } else if (fieldDAO.isReferance() && !(fieldDAO.getEnumerated() || fieldDAO.isCollection())) {
+        } else if (fieldDAO.isReference() && !(fieldDAO.getEnumerated() || fieldDAO.isCollection())) {
             return Utilities.makeMethod("public", "void", "set" + fieldName, declarationTrueFalse,
                     setCall+ "this." + fieldDAO.getVariableName().concat(" = ").concat(fieldName).concat(";") + ""
                     + "this." + fieldDAO.getVariableName() + "ID.set(" + variableName + ".getId());\n"
@@ -144,7 +144,7 @@ public class DBAcess extends CodeGenerator {
        String controlName = fieldDAO.getControlName();
         String getCall = fieldDAO.getCall();
         String displayVariableName =  fieldDAO.getDisplayVariableName();
-        boolean isReferences = fieldDAO.isReferance();
+        boolean isReferences = fieldDAO.isReference();
         String display = fieldDAO.getDisplay();
         String displayDataType = fieldDAO.getDisplayDataType();
         String usableDataTypeFalse= fieldDAO.getUsableDataType(false);
@@ -237,7 +237,7 @@ public class DBAcess extends CodeGenerator {
         } else {
 
             String idGeneratorVariableName = idGeneratorObject.getVariableName();
-            if (idGeneratorObject.isReferance()) {
+            if (idGeneratorObject.isReference()) {
                 idGeneratorVariableName = idGeneratorVariableName;
             }
 
@@ -270,7 +270,7 @@ public class DBAcess extends CodeGenerator {
 
         for (int i = 0; i < constructorFields.size(); i++) {
             FieldDAO field = constructorFields.get(i);
-//            if (field.isReferance() && !field.getEnumerated()) {
+//            if (field.isReference() && !field.getEnumerated()) {
 //                if (i == 0) {
 //                    construtorLine += field.getReferencesDA() + " " + field.getVariableNameDA();
 //                } else {
@@ -294,7 +294,7 @@ public class DBAcess extends CodeGenerator {
             if (field.isCollection()) {
 //                construtorLine += field.getDeclaration(false, false);
 //                makeInitials += field.getVariableName();
-//            } else if (field.isReferance() && !field.getEnumerated()) {
+//            } else if (field.isReference() && !field.getEnumerated()) {
 //                if (i == 0) {
 //                    makeInitials += field.getVariableNameDA() + "!= null ? (" + field.getReferences() + ") " + field.getVariableNameDA() + ".getDBEntity() : null";
 //                } else {
@@ -387,7 +387,7 @@ public class DBAcess extends CodeGenerator {
 
             String idGeneratorVariableName = idGeneratorObject.getVariableName();
             String idHelperVariableName = idHelperObject.getVariableName();
-            if (idGeneratorObject.isReferance() && !idGeneratorObject.getEnumerated()) {
+            if (idGeneratorObject.isReference() && !idGeneratorObject.getEnumerated()) {
                 return "public final int getNext" + idHelperObject.getFieldName() + "(" + idGeneratorObject.getReferences() + " " + idGeneratorVariableName + ") {\n"
                         + "        return this.getMax(\"" + idHelperVariableName + "\",\"" + idGeneratorVariableName + "\", " + idGeneratorVariableName + ")+1;\n"
                         + "    }\n";
@@ -421,7 +421,7 @@ public class DBAcess extends CodeGenerator {
             String idGeneratorVariableName = idGeneratorObject.getVariableName();
             String idHelperVariableName = idHelperObject.getVariableName();
             String references = idGeneratorObject.getReferences();
-            if (idGeneratorObject.isReferance() && idGeneratorObject.getEnumerated()) {
+            if (idGeneratorObject.isReference() && idGeneratorObject.getEnumerated()) {
                 return "public String getNext" + primaryKeyObject.getFieldName() + "(int " + idHelperVariableName + ", " + references + " " + idGeneratorVariableName + ") {\n"
                         + "  return new IDGeneratorDA().getToAppendString(" + objectName + ".class.getSimpleName(), (" + idGeneratorVariableName + ".ordinal()+1), " + idHelperVariableName + ");\n"
                         + "    }\n";

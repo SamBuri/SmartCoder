@@ -35,7 +35,7 @@ public class VueModel {
 
     private boolean forceReferences(FieldDAO fieldDAO) {
         String proiectName = fieldDAO.getProjectName();
-        return fieldDAO.isReferance() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
+        return fieldDAO.isReference() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
     }
 
     private String makeLine(FieldDAO fieldDAO, String separater, String begin, String endLiteral) {

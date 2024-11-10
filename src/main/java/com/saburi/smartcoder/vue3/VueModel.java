@@ -28,7 +28,7 @@ public class VueModel extends Vue3Utils{
     
 //    private boolean forceReferences(FieldDAO fieldDAO) {
 //        String proiectName = fieldDAO.getProjectName();
-//        return fieldDAO.isReferance() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
+//        return fieldDAO.isReference() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
 //    }
     
     private String makeLine(FieldDAO fieldDAO, String separater, String begin, String endLiteral) {
@@ -79,7 +79,7 @@ public class VueModel extends Vue3Utils{
     };
     
          private String getFieldPathDisplay(FieldDAO f){
-      if(f.isReferance() && forceReferences(f)) return f.getVariableName().concat(".displayKey");
+      if(f.isReference() && forceReferences(f)) return f.getVariableName().concat(".displayKey");
       return f.getVariableName();
     }
     private String makeCopyMethod() {
@@ -162,7 +162,7 @@ public class VueModel extends Vue3Utils{
     }
     
     private String getLengthRule(FieldDAO fieldDAO) {
-        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReferance())
+        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReference())
                 ? "(v) => v.length < " + fieldDAO.getSize() + " || \"" + fieldDAO.getCaption() + " length must be "
                 + "less or equal to " + fieldDAO.getSize() + "\"," : "";
     }

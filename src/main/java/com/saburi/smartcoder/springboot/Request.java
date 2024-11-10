@@ -28,6 +28,22 @@ public class Request extends DtoClass {
        
     }
 
+    @Override
+    public String referecesImports(FieldDAO fieldDAO) throws Exception {
+        return fieldDAO.isCollection()||fieldDAO.getEnumerated()?super.referecesImports(fieldDAO):""; 
+    }
+    
+    
+    
+      @Override
+    protected List<String> getImports(FieldDAO fieldDAO) throws Exception {
+        return List.of(referecesImports(fieldDAO),
+                nullValidationImport(fieldDAO),
+                sizeValidationImport(fieldDAO),
+                fieldDAO.getDataTypeImps(),
+                fieldDAO.getGenericDataTypeImps());
+    }
+
     
 
     public List requestImports(Project currentProject, boolean considerReferences, FieldDAO fieldDAO) throws Exception {
@@ -41,7 +57,7 @@ public class Request extends DtoClass {
             addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
 
         }
-        if (fieldDAO.isReferance()) {
+        if (fieldDAO.isReference()) {
             if (!fieldDAO.getNullable()) {
                 addIfNotExists(list, "import jakarta.validation.constraints.NotNull");
             }
@@ -92,19 +108,11 @@ public class Request extends DtoClass {
         return list;
     }
 
-    private String makeImports(Project project) throws Exception {
+    private String makeImports() throws Exception {
 
         String imp = "import lombok.Builder;\nimport lombok.Data;\n";
 
-        List<String> imports = new ArrayList();
-        for (FieldDAO t : this.fields) {
-            this.requestImports(project, forceReferences(t), t).forEach(i -> addIfNotExists(imports, i));
-
-        }
-        for (String impo : imports) {
-            imp += impo + ";\n";
-        }
-        return imp;
+        return imp+=getImports();
     }
 
     private String makeAnnotedFields() {
@@ -125,7 +133,7 @@ public class Request extends DtoClass {
             return "MultipartFile ".concat(this.getVariableName(f))
                     .concat(newline);
         }
-        if (f.isReferance() && !f.isCollection()) {
+        if (f.isReference() && !f.isCollection()) {
             return f.getDataType() + " " + this.getVariableName(f).concat(newline);
         }
         return f.getDeclaration(forceReferences(f), newLine);
@@ -214,7 +222,7 @@ public class Request extends DtoClass {
         String entityPackage = project.getEntityPackage();
         String packageName = isNullOrEmpty(entityPackage)
                 ? project.getBasePackage() + "." + objectName.toLowerCase().concat(".dtos") : entityPackage;
-        JavaClass javaClass = new JavaClass(packageName, className, this.makeImports(project),
+        JavaClass javaClass = new JavaClass(packageName, className, this.makeImports(),
                 this.makeAnnotedFields(), "", "", methods);
         
         return javaClass.makeClass("", "@Builder\n@Data\n");

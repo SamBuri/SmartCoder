@@ -88,6 +88,7 @@ public class ChangeLog extends ResourceFile{
 
         String column = "<column  "
                 .concat(nameType)
+                .concat(bigDecimalAndPrecision(fieldDo))
                 .concat(autoIncrement)
                 .concat(">\n")
                 .concat(this.makeColumnConstraints(fieldDo, prefix))
@@ -212,9 +213,17 @@ public class ChangeLog extends ResourceFile{
         } else if (dataType.equalsIgnoreCase("LocalDate")
                 || dataType.equalsIgnoreCase("Date")) {
             return "DATE";
-        } else {
+        } else if (dataType.equalsIgnoreCase("BigDecimal")) {
+            return "DECIMAL";
+        }
+        
+        else {
             return dataType.toUpperCase();
         }
+    }
+    
+    private String bigDecimalAndPrecision(FieldDAO fieldDo) {
+        return fieldDo.getDataType().equalsIgnoreCase("BigDecimal")?" precision=\"18\" scale=\"2\"":"";
     }
 
     public String makeChangeSet() {

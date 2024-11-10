@@ -40,7 +40,7 @@ public class Service extends SpringbootUtils{
 
         if (serviceTypes.equals(Enums.ServiceTypes.ID_Gen)) {
             if (idGenerator != null) {
-                if (idGenerator.isReferance()) {
+                if (idGenerator.isReference()) {
                     imp += "import " + project.getBasePackage() + "." + idGenerator.getReferences().toLowerCase() + "." + idGenerator.getReferences() + ";\n";
                 }
             }
@@ -60,11 +60,14 @@ public class Service extends SpringbootUtils{
             imp += "import java.util.ArrayList;\n";
         }
 
-        imp += fields.stream()
+      
+           String ref ="";
+           ref= fields.stream()
                 .filter(f -> f.isForeignKey(forceReferences(f)))
                 .map(f -> getPackageImport(f))
                 .distinct()
-                .reduce(imp, String::concat);
+                .reduce(ref, String::concat);
+           imp+=ref;
 
         if (this.createModify()) {
             imp += "import " + commonProject.getBasePackage() + ".utils.SpringUtil;\n";
@@ -292,7 +295,7 @@ public class Service extends SpringbootUtils{
             if (idGenerator != null) {
                 params = idGenerator.getDeclaration(true, false);
 
-                cast = idGenerator.isReferance() ? idGenerator.getReferences() : idGenerator.getDataType();
+                cast = idGenerator.isReference() ? idGenerator.getReferences() : idGenerator.getDataType();
                 cast = "(" + cast + ")object";
             }
 
