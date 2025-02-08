@@ -319,12 +319,18 @@ public class FieldDAO {
     public String getColumnName() {
         return "tbc" + getFieldName();
     }
+    
+    public String addIdPrefix(String variableName){
+       int length = variableName.length();
+       if(length<2)return variableName;
+       return variableName.substring(length-2, length);
+    }
 
     public String getDBColumnName(boolean forceReferences) {
         if (isForeignKey(forceReferences)
                 && !getReferences().equalsIgnoreCase("RevInfo")) {
 
-            return variableName.endsWith("Id") ? variableName : variableName.concat(forceReferences ? "Id" : "");
+            return addIdPrefix(variableName).equalsIgnoreCase("id") ? variableName : variableName.concat(forceReferences ? "Id" : "");
         }
         return this.getVariableName();
     }
@@ -649,7 +655,7 @@ public class FieldDAO {
     public  String getDataTypeImps() {
         String dType = this.getDataType();
         if (dType.equalsIgnoreCase("LocalDate")) {
-            return "import java.time.LocalDate;\n";
+            return "import java.time.LocalDate\n";
         }
         if (dType.equalsIgnoreCase("LocalDateTime")) {
             return "import java.time.LocalDateTime";

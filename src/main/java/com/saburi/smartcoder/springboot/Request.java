@@ -65,9 +65,9 @@ public class Request extends DtoClass {
             if (fieldDAO.isCollection()) {
                 addIfNotExists(list, "import java.util." + fieldDAO.getDataType());
                 if (fieldDAO.getDataType().equalsIgnoreCase("List")) {
-                    addIfNotExists(list, "import java.util.ArrayList");
+//                    addIfNotExists(list, "import java.util.ArrayList");
                 } else if (fieldDAO.getDataType().equalsIgnoreCase("Set")) {
-                    addIfNotExists(list, "import java.util.HashSet");
+//                    addIfNotExists(list, "import java.util.HashSet");
                 }
 
             }

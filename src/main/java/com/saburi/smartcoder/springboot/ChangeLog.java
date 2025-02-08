@@ -19,14 +19,12 @@ import java.util.stream.Collectors;
  *
  * @author samburiima
  */
-public class ChangeLog extends ResourceFile{
+public class ChangeLog extends ResourceFile {
 
     public ChangeLog(FileModel fileModel) {
         super(fileModel);
-        this.fields =this.fields.stream().filter(f->!f.getFieldName().equalsIgnoreCase("Id")).collect(Collectors.toList());
+        this.fields = this.fields.stream().filter(f -> !f.getFieldName().equalsIgnoreCase("Id")).collect(Collectors.toList());
     }
-
-    
 
     public List<FieldDAO> constantFields() throws Exception {
 
@@ -55,8 +53,6 @@ public class ChangeLog extends ResourceFile{
         }
         return revFields;
     }
-
-    
 
     private String makeColumnName(FieldDAO fieldDo) {
 
@@ -88,8 +84,8 @@ public class ChangeLog extends ResourceFile{
 
         String column = "<column  "
                 .concat(nameType)
-                .concat(bigDecimalAndPrecision(fieldDo))
                 .concat(autoIncrement)
+                .concat(this.makeDefault(fieldDo))
                 .concat(">\n")
                 .concat(this.makeColumnConstraints(fieldDo, prefix))
                 .concat("</column>");
@@ -214,16 +210,18 @@ public class ChangeLog extends ResourceFile{
                 || dataType.equalsIgnoreCase("Date")) {
             return "DATE";
         } else if (dataType.equalsIgnoreCase("BigDecimal")) {
-            return "DECIMAL";
-        }
-        
-        else {
+            return "DECIMAL(15,2)";
+        } else {
             return dataType.toUpperCase();
         }
     }
-    
-    private String bigDecimalAndPrecision(FieldDAO fieldDo) {
-        return fieldDo.getDataType().equalsIgnoreCase("BigDecimal")?" precision=\"18\" scale=\"2\"":"";
+
+    private String makeDefault(FieldDAO fieldDAO) {
+        String dataType = fieldDAO.getDataType();
+        if (dataType.equalsIgnoreCase("BigDecimal")) {
+            return " defaultValue=\"0\"";
+        }
+        return "";
     }
 
     public String makeChangeSet() {
@@ -346,28 +344,22 @@ public class ChangeLog extends ResourceFile{
 
     @Override
     protected String getFolderName() {
-        return "changelogs".concat(FILE_SEPARATOR).concat(objectName).toLowerCase(); 
+        return "changelogs".concat(FILE_SEPARATOR).concat(objectName).toLowerCase();
     }
-    
-    
 
     @Override
     protected String getFileName() {
-       return "create_" + Utilities.toPlural(objectName).toLowerCase();
+        return "create_" + Utilities.toPlural(objectName).toLowerCase();
     }
 
     @Override
     protected String getFileExtension() {
         return "xml";
     }
-    
-    
 
     @Override
     protected String create() throws Exception {
-       return makeDocument();
+        return makeDocument();
     }
-    
-    
 
 }
