@@ -857,6 +857,7 @@ public class SmartCoderController implements Initializable {
               ProjectFile pj = map.get(item.toString());
               if(pj!=null) pj.generate();
 
+
 //                String fileName = getFileFullName(objectName, project, item.toString());
 //                String fileContentent = getFileContents(item.toString(), objectName, objectCaption, moduleName, project, fieldDAOs, entityTypes, serviceTypes);
 //                File file = new File(fileName);

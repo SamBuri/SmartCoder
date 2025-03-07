@@ -171,7 +171,7 @@ public abstract class Vue3Utils extends ProjectFile {
 
     @Override
     protected String getBaseFolder() {
-        return this.project.getBaseFolder().toLowerCase();
+        return this.project.getBaseFolder();
 
     }
 

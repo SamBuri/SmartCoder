@@ -204,20 +204,30 @@ public class FXUIUtils {
     }
 
     public static void errorMessage(Exception e) {
-        Alert alert = new Alert(Alert.AlertType.ERROR, e.getMessage(), ButtonType.OK);
-        alert.setTitle("Error:");
-        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
-        alert.setResizable(true);
-        alert.show();
+//        Alert alert = new Alert(Alert.AlertType.ERROR, e.getMessage(), ButtonType.OK);
+//        alert.setTitle("Error:");
+//        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+//        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+//        alert.setResizable(true);
+//        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+//        stage.setAlwaysOnTop(true);
+//        alert.showAndWait();
+
+        AlertManager.message(e.getMessage(), "Error", Alert.AlertType.ERROR);
         e.printStackTrace();
 
     }
 
     public static void message(Object message) {
-        Alert alert = new Alert(Alert.AlertType.INFORMATION, message.toString(), ButtonType.OK);
-        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
-        alert.setResizable(true);
-        alert.show();
+//        Alert alert = new Alert(Alert.AlertType.INFORMATION, message.toString(), ButtonType.OK);
+//       alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+//        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+//        alert.setResizable(true);
+//        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+//        stage.setAlwaysOnTop(true);
+//        alert.showAndWait();
+
+        AlertManager.message(message, null, Alert.AlertType.INFORMATION);
     }
 
     public static Optional<ButtonType> warningMessage(String title, String headerText, String message) {
@@ -241,23 +251,35 @@ public class FXUIUtils {
     }
 
     public static boolean warningOk(String title, String headerText, String message) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(headerText);
-        alert.setContentText(message);
-        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
-        alert.setResizable(true);
-        return alert.showAndWait().get() == ButtonType.OK;
+        return AlertManager.warningOk(title, headerText, message);
+//        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+//        alert.setTitle(title);
+//        alert.setHeaderText(headerText);
+//        alert.setContentText(message);
+//        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+//        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+//        alert.setResizable(true);
+//        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+//        stage.setAlwaysOnTop(true);
+//        // Show the alert and check if the user pressed OK
+//        return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
     }
 
     public static boolean warningOK(String title, String message) {
-        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
-        alert.setTitle(title);
-        alert.setHeaderText(null);
-        alert.setContentText(message);
-        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
-        alert.setResizable(true);
-        return alert.showAndWait().get() == ButtonType.OK;
+        return AlertManager.warningOK(title, message);
+//        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+//        alert.setTitle(title);
+//        alert.setHeaderText(null);
+//        alert.setContentText(message);
+//
+//        alert.getDialogPane().setMaxHeight(Region.USE_PREF_SIZE);
+//        alert.getDialogPane().setMinHeight(Region.USE_PREF_SIZE);
+//        alert.setResizable(true);
+//        // Retrieve the dialog's stage and set it to always be on top
+//        Stage stage = (Stage) alert.getDialogPane().getScene().getWindow();
+//        stage.setAlwaysOnTop(true);
+//        return alert.showAndWait().orElse(ButtonType.CANCEL) == ButtonType.OK;
+
     }
 
     public static void setTableEditable(TableView table) {

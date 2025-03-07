@@ -284,7 +284,7 @@ public class ChangeLog extends ResourceFile{
                 .map(f -> makeColumn(f, prefix))
                 .reduce(columns, String::concat);
 
-        columns += makeConstantColums(prefix);
+//        columns += makeConstantColums(prefix);
 
 //        List<FieldDAO> uniqueGroups = fields.stream().filter((p) -> p.getKey()
 //                .equalsIgnoreCase(Enums.keys.Unique_Group.name())).collect(Collectors.toList());

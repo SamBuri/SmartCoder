@@ -73,6 +73,7 @@ public abstract class ProjectFile {
         }
 
         writeFile(fileName, create());
+        System.out.println("File Created with name: "+fileName);
         if (fileModel.isOpenFile()) {
             Desktop.getDesktop().open(file);
 
