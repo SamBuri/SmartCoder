@@ -4,11 +4,9 @@
  */
 package com.saburi.smartcoder;
 
-import com.saburi.dataacess.FieldDAO;
 import static com.saburi.utils.FXUIUtils.message;
 import static com.saburi.utils.FXUIUtils.warningOK;
 import com.saburi.utils.Utilities;
-import static com.saburi.utils.Utilities.isNullOrEmpty;
 import static com.saburi.utils.Utilities.writeFile;
 import java.awt.Desktop;
 import java.io.File;

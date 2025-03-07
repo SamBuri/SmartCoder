@@ -31,7 +31,7 @@ public class Controller extends Vue3Utils {
     }
 
     private String importLine(FieldDAO fd) {
-        if (!fd.isReferance()) {
+        if (!fd.isReference()) {
             return "";
         }
 
@@ -62,7 +62,7 @@ public class Controller extends Vue3Utils {
 //                .count() > 0 ? "import CrudTable from \"../../components/CrudTable.vue\";\n" : "";
 
         imports += fields.stream()
-                .filter(p -> p.isReferance())
+                .filter(p -> p.isReference())
                 .count() > 0 ? "import { onMounted } from \"vue\";\n" : "";
 
         imports += fields.stream()
@@ -70,7 +70,7 @@ public class Controller extends Vue3Utils {
                 .count() > 0 ? "import funcs from '../../utils/funcs'\n" : "";
 
         imports = fields.stream()
-                .filter(p -> p.isReferance())
+                .filter(p -> p.isReference())
                 .map(f -> importLine(f))
                 .distinct()
                 .reduce(imports, String::concat);
@@ -78,7 +78,7 @@ public class Controller extends Vue3Utils {
     }
 
     private String makeStoreLine(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
 
@@ -135,7 +135,7 @@ public class Controller extends Vue3Utils {
     public String makeDefineLines() {
         String lines = "";
         lines = this.fields.stream()
-                .filter(f -> f.isReferance())
+                .filter(f -> f.isReference())
                 .map(f -> this.makeStoreLine(f))
                 .distinct()
                 .reduce(lines, String::concat);
@@ -175,7 +175,7 @@ public class Controller extends Vue3Utils {
     private String onMunted() {
         String lines = "";
         lines = this.fields.stream()
-                .filter(f -> f.isReferance())
+                .filter(f -> f.isReference())
                 .map(f -> this.callStoreAction(f))
                 .distinct()
                 .reduce(lines, String::concat);

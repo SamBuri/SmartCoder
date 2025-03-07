@@ -63,9 +63,14 @@ public class ServiceTest extends TestClass{
         String id = referencesIn ? "Id" : "";
 
         String value = "";
-        if (fieldDAO.isNumeric()) {
+        if (fieldDAO.isPrimitiveNumber()) {
             value = "1000";
-        } else if (fieldDAO.isDate()) {
+        } 
+        
+        else if (fieldDAO.isBigDecimal()) {
+            value = "new BigDecimal(\"1000\")";
+        }
+        else if (fieldDAO.isDate()) {
             value = "LocalDate.now()";
         } else if (fieldDAO.isDateTime()) {
             value = "LocalDateTime.now()";
@@ -79,7 +84,7 @@ public class ServiceTest extends TestClass{
             value = "";
         }
 
-        return value.equals("") ? "" : "." + fieldDAO.getVariableName() + "(" + value + ")\n";
+        return value.equals("") ? "" : "." + Utilities.getVariableName(fieldDAO.getDBColumnName(referencesIn))+ "(" + value + ")\n";
     }
 
     public String buildObject() {

@@ -16,32 +16,10 @@ import static com.saburi.utils.Utilities.makeDirectory;
 import static com.saburi.utils.Utilities.writeFile;
 import com.saburi.model.Field;
 import com.saburi.model.Project;
-import com.saburi.smartcoder.springboot.ChangeLog;
 import com.saburi.smartcoder.CodeGenerator;
-import com.saburi.smartcoder.javafx.Controller;
-import com.saburi.smartcoder.springboot.ControllerTest;
-import com.saburi.smartcoder.javafx.DBAcess;
-import com.saburi.smartcoder.Entity;
 import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.ProjectFile;
-import com.saburi.smartcoder.javafx.GenMenu;
-import com.saburi.smartcoder.javafx.GenViewController;
-import com.saburi.smartcoder.springboot.Mini;
-import com.saburi.smartcoder.springboot.Repository;
-import com.saburi.smartcoder.springboot.Request;
-import com.saburi.smartcoder.springboot.Response;
-import com.saburi.smartcoder.javafx.SQLFile;
-import com.saburi.smartcoder.springboot.Service;
-import com.saburi.smartcoder.springboot.ServiceTest;
-import com.saburi.smartcoder.vuejs.Store;
-import com.saburi.smartcoder.javafx.UIEdit;
-import com.saburi.smartcoder.javafx.UIView;
-import com.saburi.smartcoder.vuejs.Vue;
-import com.saburi.smartcoder.vuejs.VueModel;
-import com.saburi.smartcoder.vuejs.VueNav;
-import com.saburi.smartcoder.springboot.WebController;
 import com.saburi.smartcoder.vue3.Vue3;
-import com.saburi.smartcoder.vuejs.Search;
 import com.saburi.utils.EditCell;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Enums.DesktopFiles;
@@ -89,7 +67,6 @@ import javafx.scene.control.cell.CheckBoxTableCell;
 import javafx.scene.control.cell.ComboBoxTableCell;
 import javafx.stage.Stage;
 import javafx.util.Callback;
-import java.awt.Desktop;
 import java.util.ArrayList;
 import java.util.Map;
 
@@ -104,7 +81,7 @@ public class SmartCoderController implements Initializable {
     }
 
     private final ObservableList dataTypes = FXCollections.observableArrayList(
-            "String", "List", "Set", "Image", "LocalDate", "LocalDateTime", "LocalTime", "boolean", "int", "long", "float", "double", "File"
+            "String", "List", "Set", "Image", "LocalDate", "LocalDateTime", "LocalTime", "boolean", "int", "long", "float", "double","BigDecimal", "File"
     );
 
     private final ObservableList mapppings = FXCollections.observableArrayList(RelationMappping.OneToOne.name(),

@@ -11,8 +11,6 @@ import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.JavaClass;
 import com.saburi.utils.Enums;
 import com.saburi.utils.Utilities;
-import static com.saburi.utils.Utilities.addIfNotExists;
-import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -21,32 +19,36 @@ import java.util.List;
  */
 public class Mini extends DtoClass {
 
-   
     private final boolean isPKNull;
-   
 
     public Mini(FileModel fileModel) {
         super(fileModel);
-       
+
         isPKNull = this.primaryKeyFied == null;
 
     }
-    
-    
+
+    @Override
+    protected List<String> getImports(FieldDAO fieldDAO) throws Exception {
+        return List.of(referecesImports(fieldDAO),
+                fieldDAO.getDataTypeImps(),
+                fieldDAO.getGenericDataTypeImps());
+    }
 
     private String makeImports() throws Exception {
 
         String imp = "";
-        imp+=Utilities.makeResponseImport(project);
+        imp += Utilities.makeResponseImport(project);
 
-        List<String> imports = new ArrayList();
-        for(FieldDAO t: this.fields) {
-            t.miniImports(project).forEach(i -> addIfNotExists(imports, i));
-
-        }
-        for (String impo : imports) {
-            imp += impo + ";\n";
-        }
+//        List<String> imports = new ArrayList();
+//        for (FieldDAO t : this.fields) {
+//            t.miniImports(project).forEach(i -> addIfNotExists(imports, i));
+//
+//        }
+//        for (String impo : imports) {
+//            imp += impo + ";\n";
+//        }
+        imp += super.getImports();
         return imp;
     }
 
@@ -62,7 +64,7 @@ public class Mini extends DtoClass {
     }
 
     public String makeClass() throws Exception {
-       
+
         String className = objectName + "" + Enums.WebFiles.Mini.name();
 
         String packageName = project.getBasePackage() + "." + objectName.toLowerCase().concat(".dtos");
@@ -72,8 +74,8 @@ public class Mini extends DtoClass {
 
     @Override
     protected boolean isValid() throws Exception {
-         CodeGenerator.validate(fields, project);
-        return super.isValid(); 
+        CodeGenerator.validate(fields, project);
+        return super.isValid();
     }
 
     @Override
@@ -83,11 +85,7 @@ public class Mini extends DtoClass {
 
     @Override
     protected String create() throws Exception {
-       return this.makeClass();
+        return this.makeClass();
     }
-    
-    
-
-  
 
 }

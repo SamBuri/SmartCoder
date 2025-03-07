@@ -54,7 +54,7 @@ public class VueNav {
     }
 
     private String headerValue(FieldDAO fieldDAO) {
-        return fieldDAO.isReferance() && !fieldDAO.getEnumerated() ? fieldDAO.getVariableName() : fieldDAO.getVariableName();
+        return fieldDAO.isReference() && !fieldDAO.getEnumerated() ? fieldDAO.getVariableName() : fieldDAO.getVariableName();
     }
 
     private String header(FieldDAO fieldDAO) {

@@ -4,7 +4,6 @@
  */
 package com.saburi.smartcoder.springboot;
 
-import com.saburi.smartcoder.Entity;
 import com.saburi.smartcoder.FileModel;
 import com.saburi.smartcoder.ProjectFile;
 import com.saburi.utils.Enums.WebFiles;

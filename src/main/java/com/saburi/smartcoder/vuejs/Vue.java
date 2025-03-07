@@ -41,7 +41,7 @@ public class Vue {
 
     private boolean forceReferences(FieldDAO fieldDAO) {
         String mName = fieldDAO.getModuleName();
-        return fieldDAO.isReferance() && (mName.equalsIgnoreCase(this.moduleName) || isNullOrEmpty(mName));
+        return fieldDAO.isReference() && (mName.equalsIgnoreCase(this.moduleName) || isNullOrEmpty(mName));
     }
 
     private UIControls getUIControl(FieldDAO fieldDAO) {
@@ -320,7 +320,7 @@ public class Vue {
     }
 
     private String getLengthRule(FieldDAO fieldDAO) {
-        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReferance())
+        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReference())
                 ? "(v) => v.length < " + fieldDAO.getSize() + " || \"" + fieldDAO.getCaption() + " length must be "
                 + "less or equal to " + fieldDAO.getSize() + "\"," : "";
     }
@@ -479,7 +479,7 @@ public class Vue {
         String body = "";
 
         body = fields.stream()
-                .filter((p) -> p.isReferance())
+                .filter((p) -> p.isReference())
                 .filter((p) -> !p.isCollection())
                 .map(fieldDAO -> "this.$store.dispatch(\"".concat(this.storePath(fieldDAO, "/")) + "get" + this.getReferencingName(fieldDAO) + "\");\n")
                 .reduce(body, String::concat);

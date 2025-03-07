@@ -263,7 +263,7 @@ public class Vue extends Vue3Utils {
     }
 
 //    private String getLengthRule(FieldDAO fieldDAO) {
-//        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReferance())
+//        return (fieldDAO.getDataType().equalsIgnoreCase("String") && !fieldDAO.isReference())
 //                ? "(v) => v.length < " + fieldDAO.getSize() + " || \"" + fieldDAO.getCaption() + " length must be "
 //                + "less or equal to " + fieldDAO.getSize() + "\"," : "";
 //    }
@@ -330,7 +330,7 @@ public class Vue extends Vue3Utils {
     }
 
     private String importLine(FieldDAO fd) {
-        if (!fd.isReferance()) {
+        if (!fd.isReference()) {
             return "";
         }
 

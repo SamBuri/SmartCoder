@@ -443,20 +443,10 @@ public class Utilities {
     }
 
     public static String getDataTypeImps(FieldDAO fieldDAO) {
-        String dataType = fieldDAO.getDataType();
-        if (dataType.equalsIgnoreCase("LocalDate")) {
-            return "import java.time.LocalDate;\n";
-        }
-        if (dataType.equalsIgnoreCase("LocalDateTime")) {
-            return "import java.time.LocalDateTime;\n";
-        }
-        if (dataType.equalsIgnoreCase("Date")) {
-            return "import java.util.Date;\n";
-        }
-        if (dataType.equalsIgnoreCase("DateTime;\n")) {
-            return "import java.util.DateTime;\n";
-        }
-        return "";
+        
+        String imp = fieldDAO.getDataTypeImps();
+        
+        return isNullOrEmpty(imp)?"":imp+";\n";
     }
 
     public static String getNonPrimitiveDataTypeImports(List<FieldDAO> fieldDAOs) {

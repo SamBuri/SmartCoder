@@ -44,7 +44,7 @@ public abstract class Vue3Utils extends ProjectFile {
 
     public boolean forceReferences(FieldDAO fieldDAO) {
         String proiectName = fieldDAO.getProjectName();
-        return fieldDAO.isReferance() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
+        return fieldDAO.isReference() && (proiectName.equalsIgnoreCase(this.project.getProjectName()) || isNullOrEmpty(proiectName));
     }
 
     public String getModuleName(FieldDAO fieldDAO) {
@@ -66,7 +66,7 @@ public abstract class Vue3Utils extends ProjectFile {
     return getVariableName(fieldDAO)+ "Ok";}
 
     public String getReferenceObjectName(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
 
@@ -76,7 +76,7 @@ public abstract class Vue3Utils extends ProjectFile {
     }
 
     public String getStoreName(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
 
@@ -86,21 +86,21 @@ public abstract class Vue3Utils extends ProjectFile {
     }
 
     public String getStoreVariableName(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
         return Utilities.getVariableName(getStoreName(fieldDAO));
     }
 
     public String defineStoreFunction(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
         return "define" + getStoreName(fieldDAO);
     }
 
     private String importPath(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
         String references = fieldDAO.getReferences();
@@ -112,7 +112,7 @@ public abstract class Vue3Utils extends ProjectFile {
     }
 
     public String importPath(FieldDAO fieldDAO, String filename) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
         return this.importPath(fieldDAO) + "/" + filename;
@@ -143,7 +143,7 @@ public abstract class Vue3Utils extends ProjectFile {
     }
 
     public String getReferencingName(FieldDAO fieldDAO) {
-        if (!fieldDAO.isReferance()) {
+        if (!fieldDAO.isReference()) {
             return "";
         }
         return fieldDAO.getReferences().equalsIgnoreCase("LookupData") ? predictLookupObjectName(fieldDAO)
